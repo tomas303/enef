@@ -35,43 +35,57 @@ let update msg state =
     let energy, cmd = Energy.update msg state.Energy
     { state with Energy = energy }, cmd
 
-let renderSwitch (state: State) (dispatch: Msg -> unit) (page: ReactElement) =
+
+let renderPageMenuItem label page currentPage dispatch =
+  renderMenuItem label (page = currentPage) (fun _ -> dispatch (Msg.SwitchPage page))
+
+let renderMenu (state: State) (dispatch: Msg -> unit) =
+  Html.aside [
+    prop.className [ 
+      "menu"
+    ]
+    prop.children [
+      Html.ul [
+        prop.className [ "menu-list" ]
+        prop.children [
+          renderPageMenuItem "Dashboard" Page.Dashboard state.CurrentPage dispatch
+          renderPageMenuItem "Energies" Page.Energy state.CurrentPage dispatch
+        ]
+      ]
+    ]
+  ]
+
+let renderApp (state: State) (dispatch: Msg -> unit) (pageContent: ReactElement) =
   Html.div [
-    prop.style [ style.padding 20 ]
+    prop.className [ "container" ]
     prop.children [
       Html.div [
-        Html.div [
-          prop.className [
-            "tabs"
-            "is-toggle"
-            "is-fullwidth"
+        prop.className [ "columns" ]
+        prop.children [
+          Html.div [ 
+            prop.className [ 
+              "column is-one-fifth" 
+            ]
+            prop.children [
+              renderMenu state dispatch
+            ]
           ]
-          prop.children [
-            Html.ul [
-              Html.li [
-                prop.onClick (fun _ -> dispatch (Msg.SwitchPage Page.Dashboard))
-                prop.children [
-                  Html.a [ Html.span ("start") ]
-                ]
-              ]
-              Html.li [
-                prop.onClick (fun _ -> dispatch (Msg.SwitchPage Page.Energy))
-                prop.children [
-                  Html.a [ Html.span ("energy") ]
-                ]
-              ]
+          Html.div [ 
+            prop.className [ 
+              "column" 
+            ]
+            prop.children [
+              pageContent 
             ]
           ]
         ]
       ]
-      Html.div [ page ]
     ]
   ]
 
 let render (state: State) (dispatch: Msg -> unit) =
   match state.CurrentPage with
-  | Page.Dashboard ->
-    renderSwitch state dispatch (Html.text "STARTING PAGE")
+  | Page.Dashboard -> renderApp state dispatch (Html.text "STARTING PAGE")
   | Page.Energy ->
-    let page = Energy.render state.Energy (fun msg -> dispatch (Msg.EnergyMsg msg))
-    renderSwitch state dispatch page
+    let pageContent = Energy.render state.Energy (fun msg -> dispatch (Msg.EnergyMsg msg))
+    renderApp state dispatch pageContent
