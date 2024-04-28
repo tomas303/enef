@@ -6,7 +6,7 @@
   <ItemGroup>
     <Compile Include="EditUtils.fs" />
     <Compile Include="Extensions.fs" />
-    <Compile Include="ModuleEnergy.fs" />
+    <Compile Include="Energy.fs" />
     <Compile Include="App.fs" />
     <Compile Include="Main.fs" />
   </ItemGroup>

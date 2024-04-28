@@ -3,6 +3,7 @@ module App
 
 open Elmish
 open Feliz
+open Energies
 
 [<RequireQualifiedAccess>]
 type Page =
@@ -33,7 +34,7 @@ let update msg state =
     state, Cmd.none
   | EnergyMsg msg ->
     let energy, cmd = Energy.update msg state.Energy
-    { state with Energy = energy }, cmd
+    { state with Energy = energy }, Cmd.map EnergyMsg cmd
 
 
 let renderPageMenuItem label page currentPage dispatch =
