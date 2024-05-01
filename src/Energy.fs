@@ -164,28 +164,35 @@ module ListEnergy =
       let state = { state with Items = Resolved ([]) }
       state, Cmd.none
 
-  let renderField (field : EditUtils.Field) =
+  let renderField (field : EditUtils.Field) ( addclass : string) =
     Html.div [
       prop.classes [
         if field.Valid then
           "cell"
         else
           "cell is-danger"
+        addclass
       ]
       prop.children [ Html.span field.Input ]
     ]
 
-  let renderCell (text : string) =
+  let renderCell (text : string) ( addclass : string) =
     Html.div [
-      prop.classes [ "cell" ]
+      prop.classes [ "cell"; addclass ]
       prop.children [ Html.span text ]
     ]
 
   let renderItem (item : EnergyEditType) =
-    [ renderCell item.ID
-      renderField item.Created
-      renderField item.Info
-      renderField item.Amount ]
+    [ //renderCell item.ID
+      Html.div [
+        prop.classes [ "columns" ]
+        prop.children [
+          renderField item.Created "column is-3"
+          renderField item.Amount "column is-3"
+          renderField item.Info "column is-6"
+        ]
+      ]
+    ]
 
   let render (state : State) (dispatch : Msg -> unit) =
     match state.Items with
@@ -195,19 +202,8 @@ module ListEnergy =
       let bbb = List.collect (Utils.createEditFromDB >> renderItem) items
 
       Html.div [
-        prop.classes [
-          "fixed-grid"
-          "has-1-cols-mobile"
-          "has-4-cols-tablet"
-        ]
-        prop.children [
-          Html.div [
-            prop.classes [ "grid" ]
-            prop.children (List.collect (Utils.createEditFromDB >> renderItem) items)
-          ]
-        ]
+        prop.children (List.collect (Utils.createEditFromDB >> renderItem) items)
       ]
-
 
 module Energy =
 
