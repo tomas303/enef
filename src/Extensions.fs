@@ -4,12 +4,13 @@ module Extensions
 open Elmish
 
 module Cmd =
-  let fromAsync (operation: Async<'msg>) : Cmd<'msg> =
-    let delayedCmd (dispatch: 'msg -> unit) : unit =
-      let delayedDispatch = async {
+  let fromAsync (operation : Async<'msg>) : Cmd<'msg> =
+    let delayedCmd (dispatch : 'msg -> unit) : unit =
+      let delayedDispatch =
+        async {
           let! msg = operation
           dispatch msg
-      }
+        }
 
       Async.StartImmediate delayedDispatch
 
@@ -25,8 +26,8 @@ type AsyncOperationEvent<'t> =
   | Finished of 't
 
 module Async =
-  let map<'t, 'u> (mapping: 't -> 'u) (input: Async<'t>) : Async<'u> = 
+  let map<'t, 'u> (mapping : 't -> 'u) (input : Async<'t>) : Async<'u> =
     async {
-      let! x = input;
+      let! x = input
       return mapping x
     }

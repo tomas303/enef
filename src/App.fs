@@ -12,8 +12,8 @@ type Page =
 
 
 type State =
-  { CurrentPage: Page
-    Energy: Energy.State }
+  { CurrentPage : Page
+    Energy : Energy.State }
 
 type Msg =
   | SwitchPage of Page
@@ -40,11 +40,9 @@ let update msg state =
 let renderPageMenuItem label page currentPage dispatch =
   renderMenuItem label (page = currentPage) (fun _ -> dispatch (Msg.SwitchPage page))
 
-let renderMenu (state: State) (dispatch: Msg -> unit) =
+let renderMenu (state : State) (dispatch : Msg -> unit) =
   Html.aside [
-    prop.className [ 
-      "menu"
-    ]
+    prop.className [ "menu" ]
     prop.children [
       Html.ul [
         prop.className [ "menu-list" ]
@@ -56,37 +54,33 @@ let renderMenu (state: State) (dispatch: Msg -> unit) =
     ]
   ]
 
-let renderApp (state: State) (dispatch: Msg -> unit) (pageContent: ReactElement) =
+let renderApp (state : State) (dispatch : Msg -> unit) (pageContent : ReactElement) =
   Html.div [
     prop.className [ "container" ]
     prop.children [
       Html.div [
         prop.className [ "columns" ]
         prop.children [
-          Html.div [ 
-            prop.className [ 
-              "column is-one-fifth" 
-            ]
+          Html.div [
+            prop.className [ "column is-one-fifth" ]
             prop.children [
               renderMenu state dispatch
             ]
           ]
-          Html.div [ 
-            prop.className [ 
-              "column" 
-            ]
-            prop.children [
-              pageContent 
-            ]
+          Html.div [
+            prop.className [ "column" ]
+            prop.children [ pageContent ]
           ]
         ]
       ]
     ]
   ]
 
-let render (state: State) (dispatch: Msg -> unit) =
+let render (state : State) (dispatch : Msg -> unit) =
   match state.CurrentPage with
   | Page.Dashboard -> renderApp state dispatch (Html.text "STARTING PAGE")
   | Page.Energy ->
-    let pageContent = Energy.render state.Energy (fun msg -> dispatch (Msg.EnergyMsg msg))
+    let pageContent =
+      Energy.render state.Energy (fun msg -> dispatch (Msg.EnergyMsg msg))
+
     renderApp state dispatch pageContent
