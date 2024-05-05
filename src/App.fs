@@ -30,11 +30,14 @@ let init () =
 let update msg state =
   match msg with
   | SwitchPage page ->
-    let state = { state with CurrentPage = page }
-    state, Cmd.none
+    let newstate = { state with CurrentPage = page }
+
+    match newstate.CurrentPage with
+    | Page.Energy -> newstate, Cmd.ofMsg (Msg.EnergyMsg (Energy.Msg.InitPage))
+    | _ -> newstate, Cmd.none
   | EnergyMsg msg ->
     let energy, cmd = Energy.update msg state.Energy
-    { state with Energy = energy }, Cmd.map EnergyMsg cmd
+    { state with Energy = energy }, Cmd.map Msg.EnergyMsg cmd
 
 
 let renderPageMenuItem label page currentPage dispatch =

@@ -3,6 +3,10 @@ namespace Energies
 open System
 open Feliz
 open Elmish
+open Fable.SimpleHttp
+open Thoth.Json
+open Fable.DateFunctions
+
 
 type EnergyDbType =
   { ID : String
@@ -31,6 +35,21 @@ module Utils =
   //   | true, dateTimeOffset -> Some (dateTimeOffset.ToUnixTimeSeconds ())
   //   | false, _ -> None
 
+  let toUnixTimeSeconds (dateTime : DateTime) : int64 =
+    let unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)  // Unix epoch in UTC
+    let timeSpan = dateTime - unixEpoch
+    timeSpan.Ticks / (int64) 10000000
+
+
+  let stringToUnixTime (format : string) (dateTimeString : string) : int64 =
+    let dt =
+      // DateTime.ParseExact (dateTimeString, format, null, System.Globalization.DateTimeStyles.None)
+      DateTime.Parse (dateTimeString)
+
+    toUnixTimeSeconds (dt)
+
+
+
   let createEdit amount info date =
     { ID = Guid.NewGuid().ToString ()
       Amount =
@@ -50,6 +69,24 @@ module Utils =
       Created =
         { Input = unixTimeToString dateEditFormat energyDB.Created
           Valid = true } }
+
+  let createDBFromEdit (ene : EnergyEditType) : EnergyDbType =
+    { ID = ene.ID
+      Amount =
+        (if ene.Amount.Valid then
+           Int64.Parse (ene.Amount.Input)
+         else
+           0)
+      Info =
+        (if ene.Info.Valid then
+           ene.Info.Input
+         else
+           "")
+      Created =
+        (if ene.Created.Valid then
+           stringToUnixTime dateEditFormat ene.Created.Input
+         else
+           0) }
 
 
 module EditEnergy =
@@ -115,10 +152,6 @@ module EditEnergy =
 
 module ListEnergy =
 
-  open Fable.SimpleHttp
-  open Thoth.Json
-
-
   type State =
     { Items : Deferred<List<EnergyDbType>> }
 
@@ -164,7 +197,7 @@ module ListEnergy =
       let state = { state with Items = Resolved ([]) }
       state, Cmd.none
 
-  let renderField (field : EditUtils.Field) ( addclass : string) =
+  let renderField (field : EditUtils.Field) (addclass : string) =
     Html.div [
       prop.classes [
         if field.Valid then
@@ -176,9 +209,9 @@ module ListEnergy =
       prop.children [ Html.span field.Input ]
     ]
 
-  let renderCell (text : string) ( addclass : string) =
+  let renderCell (text : string) (addclass : string) =
     Html.div [
-      prop.classes [ "cell"; addclass ]
+      prop.classes [ "cell" ; addclass ]
       prop.children [ Html.span text ]
     ]
 
@@ -191,8 +224,7 @@ module ListEnergy =
           renderField item.Amount "column is-3"
           renderField item.Info "column is-6"
         ]
-      ]
-    ]
+      ] ]
 
   let render (state : State) (dispatch : Msg -> unit) =
     match state.Items with
@@ -210,21 +242,51 @@ module Energy =
   type State =
     { Edit : EditEnergy.State
       InEdit : bool
+      EditError: string
       Rows : ListEnergy.State }
 
   type Msg =
+    | InitPage
     | AddNew
+    | SaveNew of AsyncOperationEvent<Result<int, string>>
+    | CancelNew
     | LoadRows
     | EditMsg of EditEnergy.Msg
     | ListMsg of ListEnergy.Msg
 
+
+  let encoder (ene : EnergyDbType) =
+    Encode.object [
+      "ID", (Encode.string ene.ID)
+      "Amount", (Encode.int64 ene.Amount)
+      "Info", (Encode.string ene.Info)
+      "Created", (Encode.int64 ene.Created)
+    ]
+
+  let saveItem (item : EnergyDbType) =
+    async {
+
+      let body = Encode.toString 2 (encoder (item))
+      let! (status, responseText) = Http.post "http://localhost:8085/energies" body
+
+      match status with
+      | 200 -> return SaveNew (Finished (Ok 200))
+      | _ -> return SaveNew (Finished (Error responseText))
+    }
+
+
   let init () : State =
     { Edit = EditEnergy.empty ()
       InEdit = false
+      EditError = ""
       Rows = ListEnergy.empty () }
 
-  let update msg state =
+  let update (msg : Msg) (state : State) =
     match msg with
+    | InitPage ->
+      match state.Rows.Items with
+      | HasNotStartedYet -> state, Cmd.ofMsg LoadRows
+      | _ -> state, Cmd.none
     | AddNew ->
       let state =
         { state with
@@ -232,6 +294,18 @@ module Energy =
             InEdit = true }
 
       state, Cmd.none
+    | SaveNew Started ->
+      let ene = Utils.createDBFromEdit state.Edit.Energy
+      { state with EditError = ""}, Cmd.fromAsync (saveItem (ene))
+
+    | SaveNew (Finished (Ok x)) ->
+      { state with InEdit = false; EditError = "" }, Cmd.none
+    | SaveNew (Finished (Error x)) ->
+      { state with InEdit = false; EditError = x }, Cmd.none
+
+
+    | CancelNew -> { state with InEdit = false }, Cmd.none
+
     | LoadRows -> state, Cmd.ofMsg (ListMsg (ListEnergy.Msg.LoadItems (Started)))
     | EditMsg msg ->
       let newState, editCmd = EditEnergy.update msg state.Edit
@@ -242,27 +316,65 @@ module Energy =
 
   let render (state : State) (dispatch : Msg -> unit) =
     Html.div [
+      // match state.InEdit with
+      // | true -> EditEnergy.render state.Edit (fun msg -> dispatch (EditMsg msg))
+      // | _ ->
+      //   Html.div [
+      //     Html.div [
+      //       Html.button [
+      //         prop.text "Add new energy"
+      //         prop.onClick (fun _ -> dispatch AddNew)
+      //       ]
+      //     ]
+      //   ]
 
-      match state.InEdit with
-      | true -> EditEnergy.render state.Edit (fun msg -> dispatch (EditMsg msg))
-      | _ ->
-        Html.div [
-          Html.div [
-            Html.button [
-              prop.text "Add new energy"
-              prop.onClick (fun _ -> dispatch AddNew)
-            ]
-          ]
-        ]
-
-      Html.div [
-        Html.div [
-          Html.button [
-            prop.text "Load rows"
-            prop.onClick (fun _ -> dispatch LoadRows)
-          ]
-        ]
-      ]
+      // Html.div [
+      //   Html.div [
+      //     Html.button [
+      //       prop.text "Load rows"
+      //       prop.onClick (fun _ -> dispatch LoadRows)
+      //     ]
+      //   ]
+      // ]
 
       ListEnergy.render state.Rows (fun msg -> dispatch (ListMsg msg))
+
+      match state.InEdit with
+      | true ->
+        Html.div [
+          EditEnergy.render state.Edit (fun msg -> dispatch (EditMsg msg))
+
+          Html.div [
+            prop.classes [ "control" ; "buttons" ]
+            prop.children [
+              Html.button [
+                prop.classes [ "button" ; "is-primary" ]
+                prop.text "Save record"
+                prop.onClick (fun _ -> dispatch (SaveNew Started))
+              ]
+              Html.button [
+                prop.classes [ "button" ; "is-primary" ]
+                prop.text "Cancel"
+                prop.onClick (fun _ -> dispatch CancelNew)
+              ]
+            ]
+          ]
+
+          ]
+      | _ ->
+        Html.div [
+          prop.classes [ "control" ; "buttons" ]
+          prop.children [
+            Html.button [
+              prop.classes [ "button" ; "is-primary" ]
+              prop.text "New record"
+              prop.onClick (fun _ -> dispatch AddNew)
+            ]
+            if not( String.IsNullOrEmpty(state.EditError)) then 
+              Html.paragraph [
+                prop.classes [ "control" ; "has-text-warning" ]
+                prop.text ("Error: " + state.EditError)
+              ]
+          ]
+        ]
     ]
