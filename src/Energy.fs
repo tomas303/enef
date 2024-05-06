@@ -24,7 +24,8 @@ type EnergyEditType =
 module Utils =
   let amountVD = editIsValid "^\\d+$"
 
-  let dateEditFormat = "dd.MM.yyyy HH:mm:ss"
+  // let dateEditFormat = "dd.MM.yyyy HH:mm:ss"
+  let dateEditFormat = "dd.MM HH:mm"
 
   let unixTimeToString (format : string) (unixTimeSeconds : int64) : string =
     let dateTimeOffset = DateTimeOffset.FromUnixTimeSeconds (unixTimeSeconds)
@@ -201,9 +202,9 @@ module ListEnergy =
     Html.div [
       prop.classes [
         if field.Valid then
-          "cell"
+          "cell "
         else
-          "cell is-danger"
+          "cell is-danger "
         addclass
       ]
       prop.children [ Html.span field.Input ]
@@ -217,12 +218,13 @@ module ListEnergy =
 
   let renderItem (item : EnergyEditType) =
     [ //renderCell item.ID
+      let commonClass = " is-size-6 py-0"
       Html.div [
         prop.classes [ "columns" ]
         prop.children [
-          renderField item.Created "column is-3"
-          renderField item.Amount "column is-3"
-          renderField item.Info "column is-6"
+          renderField item.Created ( "column is-2" + commonClass )
+          renderField item.Amount ( "column is-1 has-text-right" + commonClass )
+          renderField item.Info ("column is-1" + commonClass )
         ]
       ] ]
 
@@ -231,9 +233,8 @@ module ListEnergy =
     | HasNotStartedYet -> Html.div "has not started"
     | InProgress -> Html.div "in progress"
     | Resolved items ->
-      let bbb = List.collect (Utils.createEditFromDB >> renderItem) items
-
       Html.div [
+        prop.classes [ "px-4 py-4" ]
         prop.children (List.collect (Utils.createEditFromDB >> renderItem) items)
       ]
 
