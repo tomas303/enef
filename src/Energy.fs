@@ -16,9 +16,9 @@ type EnergyDbType =
 
 type EnergyEditType =
   { ID : String
-    Amount : EditUtils.Field
-    Info : EditUtils.Field
-    Created : EditUtils.Field }
+    Amount : EditUtils.Field<string>
+    Info : EditUtils.Field<string>
+    Created : EditUtils.Field<DateTime> }
 
 
 module Utils =
@@ -36,8 +36,17 @@ module Utils =
   //   | true, dateTimeOffset -> Some (dateTimeOffset.ToUnixTimeSeconds ())
   //   | false, _ -> None
 
+  let unixTimeToLocalDateTime (unixTimeSeconds : int64) : DateTime =
+    let dateTimeOffset = DateTimeOffset.FromUnixTimeSeconds (unixTimeSeconds)
+    dateTimeOffset.ToLocalTime().LocalDateTime
+
+  let localDateTimeToUnixTime (datetime : DateTime) : int64 =
+    let unixEpoch = DateTime (1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+    let timeSpan = datetime.ToUniversalTime () - unixEpoch
+    Convert.ToInt64 (timeSpan.TotalSeconds)
+
   let toUnixTimeSeconds (dateTime : DateTime) : int64 =
-    let unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)  // Unix epoch in UTC
+    let unixEpoch = new DateTime (1970, 1, 1, 0, 0, 0, DateTimeKind.Utc) // Unix epoch in UTC
     let timeSpan = dateTime - unixEpoch
     timeSpan.Ticks / (int64) 10000000
 
@@ -57,9 +66,7 @@ module Utils =
         { Input = amount.ToString ()
           Valid = true }
       Info = { Input = info ; Valid = true }
-      Created =
-        { Input = date.ToString ()
-          Valid = true } }
+      Created = { Input = date ; Valid = true } }
 
   let createEditFromDB (energyDB : EnergyDbType) =
     { ID = energyDB.ID
@@ -68,7 +75,7 @@ module Utils =
           Valid = true }
       Info = { Input = energyDB.Info ; Valid = true }
       Created =
-        { Input = unixTimeToString dateEditFormat energyDB.Created
+        { Input = unixTimeToLocalDateTime energyDB.Created
           Valid = true } }
 
   let createDBFromEdit (ene : EnergyEditType) : EnergyDbType =
@@ -85,7 +92,7 @@ module Utils =
            "")
       Created =
         (if ene.Created.Valid then
-           stringToUnixTime dateEditFormat ene.Created.Input
+           localDateTimeToUnixTime (ene.Created.Input)
          else
            0) }
 
@@ -97,10 +104,10 @@ module EditEnergy =
   type Msg =
     | SetAmount of string
     | SetInfo of string
-    | SetDate of string
+    | SetDate of DateTime
 
   let empty () =
-    { Energy = Utils.createEdit 0 "" DateTime.Now }
+    { Energy = Utils.createEdit 11 "new" DateTime.Now }
 
   let amountVD = editIsValid "^\\d+$"
 
@@ -116,7 +123,7 @@ module EditEnergy =
       let state = { state with Energy.Created = { Input = x ; Valid = true } }
       state, Cmd.none
 
-  let renderField label (field : EditUtils.Field) (onchange : string -> unit) =
+  let renderField label (inputProps : list<IReactProperty>) =
     Html.div [
       prop.classes [ "field" ]
       prop.children [
@@ -126,18 +133,7 @@ module EditEnergy =
         Html.div [
           prop.classes [ "control" ]
           prop.children [
-            Html.input [
-              prop.classes [
-                if field.Valid then
-                  "input"
-                else
-                  "input is-danger"
-              ]
-              prop.type' "text"
-              prop.placeholder "Amount"
-              prop.valueOrDefault (field.Input)
-              prop.onChange (onchange)
-            ]
+            Html.input inputProps
           ]
         ]
       ]
@@ -145,9 +141,27 @@ module EditEnergy =
 
   let render (state : State) (dispatch : Msg -> unit) =
     Html.div [
-      renderField "Date" state.Energy.Created (SetDate >> dispatch)
-      renderField "Amount" state.Energy.Amount (SetAmount >> dispatch)
-      renderField "Info" state.Energy.Info (SetInfo >> dispatch)
+      renderField "Date" ([ 
+        prop.classes [ if state.Energy.Created.Valid then "input" else "input is-danger" ]
+        prop.placeholder "creation date"
+        prop.type' "datetime-local"
+        prop.value state.Energy.Created.Input
+        prop.onChange (SetDate >> dispatch) 
+      ])
+      renderField "Amount" ([ 
+        prop.classes [ if state.Energy.Amount.Valid then "input" else "input is-danger" ]
+        prop.placeholder "amount of energy"
+        prop.type' "text"
+        prop.value state.Energy.Amount.Input
+        prop.onChange (SetAmount >> dispatch) 
+      ])
+      renderField "Info" ([ 
+        prop.classes [ if state.Energy.Info.Valid then "input" else "input is-danger" ]
+        prop.placeholder "amount of energy"
+        prop.type' "text"
+        prop.value state.Energy.Info.Input
+        prop.onChange (SetInfo >> dispatch) 
+      ])
     ]
 
 
@@ -198,7 +212,7 @@ module ListEnergy =
       let state = { state with Items = Resolved ([]) }
       state, Cmd.none
 
-  let renderField (field : EditUtils.Field) (addclass : string) =
+  let renderField (field : EditUtils.Field<string>) (addclass : string) =
     Html.div [
       prop.classes [
         if field.Valid then
@@ -219,12 +233,13 @@ module ListEnergy =
   let renderItem (item : EnergyEditType) =
     [ //renderCell item.ID
       let commonClass = " is-size-6 py-0"
+
       Html.div [
         prop.classes [ "columns" ]
         prop.children [
-          renderField item.Created ( "column is-2" + commonClass )
-          renderField item.Amount ( "column is-1 has-text-right" + commonClass )
-          renderField item.Info ("column is-1" + commonClass )
+          renderField (EditUtils.map ( fun (x : DateTime) -> x.ToString("dd.MM HH:mm"))  item.Created ) ("column is-2" + commonClass)
+          renderField item.Amount ("column is-1 has-text-right" + commonClass)
+          renderField item.Info ("column is-1" + commonClass)
         ]
       ] ]
 
@@ -243,7 +258,7 @@ module Energy =
   type State =
     { Edit : EditEnergy.State
       InEdit : bool
-      EditError: string
+      EditError : string
       Rows : ListEnergy.State }
 
   type Msg =
@@ -297,12 +312,18 @@ module Energy =
       state, Cmd.none
     | SaveNew Started ->
       let ene = Utils.createDBFromEdit state.Edit.Energy
-      { state with EditError = ""}, Cmd.fromAsync (saveItem (ene))
+      { state with EditError = "" }, Cmd.fromAsync (saveItem (ene))
 
     | SaveNew (Finished (Ok x)) ->
-      { state with InEdit = false; EditError = "" }, Cmd.none
+      { state with
+          InEdit = false
+          EditError = "" },
+      Cmd.none
     | SaveNew (Finished (Error x)) ->
-      { state with InEdit = false; EditError = x }, Cmd.none
+      { state with
+          InEdit = false
+          EditError = x },
+      Cmd.none
 
 
     | CancelNew -> { state with InEdit = false }, Cmd.none
@@ -371,9 +392,12 @@ module Energy =
               prop.text "New record"
               prop.onClick (fun _ -> dispatch AddNew)
             ]
-            if not( String.IsNullOrEmpty(state.EditError)) then 
+            if not (String.IsNullOrEmpty (state.EditError)) then
               Html.paragraph [
-                prop.classes [ "control" ; "has-text-warning" ]
+                prop.classes [
+                  "control"
+                  "has-text-warning"
+                ]
                 prop.text ("Error: " + state.EditError)
               ]
           ]
