@@ -24,7 +24,7 @@ let init () =
     { CurrentPage = Page.Dashboard
       Energy = Energy.init () }
 
-  let cmd = Cmd.ofMsg (Msg.SwitchPage Page.Dashboard)
+  let cmd = Cmd.ofMsg (Msg.SwitchPage Page.Energy)
   state, cmd
 
 let update msg state =
@@ -59,7 +59,7 @@ let renderMenu (state : State) (dispatch : Msg -> unit) =
 
 let renderApp (state : State) (dispatch : Msg -> unit) (pageContent : ReactElement) =
   Html.div [
-    prop.className [ "container" ]
+    prop.className [ "container-fluid" ]
     prop.children [
       Html.div [
         prop.className [ "columns" ]
