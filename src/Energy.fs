@@ -123,45 +123,58 @@ module EditEnergy =
       let state = { state with Energy.Created = { Input = x ; Valid = true } }
       state, Cmd.none
 
-  let renderxxx  =
+  let render (state : State) (dispatch : Msg -> unit) =
     Html.div [ 
-      prop.classes [ "box" ]
+      prop.classes [ "column"; "is-3" ]
       prop.children [ 
         Html.div [
-          prop.classes [ "field"; "Sis-grouped" ]
+          prop.classes [ "field"; "has-addons" ]
           prop.children [
-            Html.label [
-              prop.classes [ "label" ]
+            Html.div [
+              prop.classes [ "control" ]
               prop.children [
-                Html.text "label text"
+                Html.input [
+                  prop.classes [ "input" ]
+                  prop.placeholder "date"
+                  prop.type' "date"
+                  //prop.onTextChange (SetEditedDescription >> dispatch)
+                ]
               ]
             ]
             Html.div [
               prop.classes [ "control"; "is-expanded" ]
               prop.children [
                 Html.input [
-                  prop.classes [ "input"; "is-medium" ]
-                  prop.valueOrDefault "test"
+                  prop.classes [ "input" ]
+                  prop.placeholder "text"
+                  prop.type' "text"
                   //prop.onTextChange (SetEditedDescription >> dispatch)
                 ]
               ]
             ]
             Html.div [
-              prop.classes [ "control"; "buttons" ]
+              prop.classes [ "control" ]
               prop.children [
                 Html.button [
-                  prop.classes [ "button"; "is-primary"]
-                  // prop.onClick (fun _ -> dispatch ApplyEdit)
-                  prop.children [
-                    Html.i [ prop.classes ["fa"; "fa-save" ] ]
-                  ]
+                  prop.classes [ "button"; "is-info" ]
+                  prop.text "remark"
+                  //prop.onTextChange (SetEditedDescription >> dispatch)
                 ]
-                Html.button [
-                  prop.classes ["button"; "is-warning"]
-                  // prop.onClick (fun _ -> dispatch CancelEdit)
-                  prop.children [
-                    Html.i [ prop.classes ["fa"; "fa-arrow-right"] ]
-                  ]
+              ]
+            ]
+          ]
+        ]
+        Html.div [
+          prop.classes [ "field" ]
+          prop.children [
+            Html.div [
+              prop.classes [ "control" ]
+              prop.children [
+                Html.input [
+                  prop.classes [ "input"]
+                  prop.type' "text"
+                  prop.placeholder "text"
+                  //prop.onTextChange (SetEditedDescription >> dispatch)
                 ]
               ]
             ]
@@ -170,57 +183,6 @@ module EditEnergy =
       ]
     ]
 
-  let renderField label (inputProps : list<IReactProperty>) =
-    Html.div [
-      prop.classes [ "field" ]
-      prop.children [
-        // Html.label [
-        //   prop.text (label : string)
-        // ]
-        Html.div [
-          prop.classes [ "control is-expanded" ]
-          prop.children [
-            Html.input inputProps
-          ]
-        ]
-        // renderxxx
-      ]
-    ]
-
-  let render (state : State) (dispatch : Msg -> unit) =
-    Html.form [
-      Html.div [
-        prop.classes ["field is-horizontal"]
-        prop.children [
-          Html.div [
-            prop.classes [ "field-body" ]
-            prop.children [
-              renderField "Date" ([ 
-                prop.classes [ if state.Energy.Created.Valid then "input" else "input is-danger" ]
-                prop.placeholder "creation date"
-                prop.type' "datetime-local"
-                prop.value state.Energy.Created.Input
-                prop.onChange (SetDate >> dispatch) 
-              ])
-              renderField "Amount" ([ 
-                prop.classes [ if state.Energy.Amount.Valid then "input" else "input is-danger" ]
-                prop.placeholder "amount of energy"
-                prop.type' "text"
-                prop.value state.Energy.Amount.Input
-                prop.onChange (SetAmount >> dispatch) 
-              ])
-              renderField "Info" ([ 
-                prop.classes [ if state.Energy.Info.Valid then "input" else "input is-danger" ]
-                prop.placeholder "amount of energy"
-                prop.type' "text"
-                prop.value state.Energy.Info.Input
-                prop.onChange (SetInfo >> dispatch) 
-              ])
-            ]
-          ]
-        ]
-      ]
-    ]
 
 module ListEnergy =
 
