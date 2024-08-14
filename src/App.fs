@@ -7,8 +7,10 @@ open Energies
 
 [<RequireQualifiedAccess>]
 type Page =
-  | Dashboard
-  | Energy
+  | Home
+  | Overview
+  | Pricelists
+// | Energy
 
 
 type State =
@@ -21,10 +23,10 @@ type Msg =
 
 let init () =
   let state =
-    { CurrentPage = Page.Dashboard
+    { CurrentPage = Page.Home
       Energy = Energy.init () }
 
-  let cmd = Cmd.ofMsg (Msg.SwitchPage Page.Energy)
+  let cmd = Cmd.ofMsg (Msg.SwitchPage Page.Home)
   state, cmd
 
 let update msg state =
@@ -33,57 +35,70 @@ let update msg state =
     let newstate = { state with CurrentPage = page }
 
     match newstate.CurrentPage with
-    | Page.Energy -> newstate, Cmd.ofMsg (Msg.EnergyMsg (Energy.Msg.InitPage))
+    // | Page.Energy -> newstate, Cmd.ofMsg (Msg.EnergyMsg (Energy.Msg.InitPage))
     | _ -> newstate, Cmd.none
   | EnergyMsg msg ->
     let energy, cmd = Energy.update msg state.Energy
     { state with Energy = energy }, Cmd.map Msg.EnergyMsg cmd
 
 
-let renderPageMenuItem label page currentPage dispatch =
-  renderMenuItem label (page = currentPage) (fun _ -> dispatch (Msg.SwitchPage page))
-
-let renderMenu (state : State) (dispatch : Msg -> unit) =
-  Html.aside [
-    prop.className [ "menu" ]
+let renderMenuNavItem (label : string) (handler : unit -> unit) =
+  Html.p [
+    prop.classes [
+      "level-item"
+      "has-text-centered"
+    ]
     prop.children [
-      Html.ul [
-        prop.className [ "menu-list" ]
+      Html.a [
+        prop.classes [ "link is-info" ]
+        prop.onClick (fun _ -> handler ())
+        prop.children [ Html.text label ]
+      ]
+    ]
+  ]
+
+let renderMenuNav (state : State) (dispatch : Msg -> unit) =
+  Html.section [
+    prop.classes [ "section" ]
+    prop.children [
+      Html.nav [
+        prop.classes [ "level" ]
         prop.children [
-          renderPageMenuItem "Dashboard" Page.Dashboard state.CurrentPage dispatch
-          renderPageMenuItem "Energies" Page.Energy state.CurrentPage dispatch
+          renderMenuNavItem "Home" (fun _ -> dispatch (Msg.SwitchPage Page.Home))
+          renderMenuNavItem "Overview" (fun _ -> dispatch (Msg.SwitchPage Page.Overview))
+          renderMenuNavItem "Pricelists" (fun _ -> dispatch (Msg.SwitchPage Page.Pricelists))
         ]
       ]
     ]
   ]
 
-let renderApp (state : State) (dispatch : Msg -> unit) (pageContent : ReactElement) =
+let renderApp (state : State) (dispatch : Msg -> unit) (renderPage : State -> (Msg -> unit) -> ReactElement) =
   Html.div [
-    prop.className [ "container-fluid" ]
-    prop.children [
-      Html.div [
-        prop.className [ "columns" ]
-        prop.children [
-          Html.div [
-            prop.className [ "column is-one-fifth" ]
-            prop.children [
-              renderMenu state dispatch
-            ]
-          ]
-          Html.div [
-            prop.className [ "column" ]
-            prop.children [ pageContent ]
+    renderMenuNav state dispatch
+    Html.section [
+      prop.classes [ "section" ]
+      prop.children [
+        Html.div [
+          prop.classes [ "container" ]
+          prop.children [
+            renderPage state dispatch
           ]
         ]
       ]
     ]
+  ]
+
+let renderHome (state : State) (dispatch : Msg -> unit) =
+  Html.div [
+    Html.text "home"
   ]
 
 let render (state : State) (dispatch : Msg -> unit) =
   match state.CurrentPage with
-  | Page.Dashboard -> renderApp state dispatch (Html.text "STARTING PAGE")
-  | Page.Energy ->
-    let pageContent =
-      Energy.render state.Energy (fun msg -> dispatch (Msg.EnergyMsg msg))
+  | Page.Home -> renderApp state dispatch renderHome
+  // | Page.Energy ->
+  //   let pageContent =
+  //     Energy.render state.Energy (fun msg -> dispatch (Msg.EnergyMsg msg))
+  | Page.Overview -> Html.div "Overview - to be done"
+  | Page.Pricelists -> Html.div "Pricelists - to be done"
 
-    renderApp state dispatch pageContent
