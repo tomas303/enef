@@ -72,7 +72,7 @@ let renderMenuNav (state : State) (dispatch : Msg -> unit) =
     ]
   ]
 
-let renderApp (state : State) (dispatch : Msg -> unit) (renderPage : State -> (Msg -> unit) -> ReactElement) =
+let renderApp (state : State) (dispatch : Msg -> unit) (renderPage : State -> (Msg -> unit) -> ReactElement list) =
   Html.div [
     renderMenuNav state dispatch
     Html.section [
@@ -80,17 +80,17 @@ let renderApp (state : State) (dispatch : Msg -> unit) (renderPage : State -> (M
       prop.children [
         Html.div [
           prop.classes [ "container" ]
-          prop.children [
-            renderPage state dispatch
-          ]
+          prop.children (renderPage state dispatch)
         ]
       ]
     ]
   ]
 
 let renderHome (state : State) (dispatch : Msg -> unit) =
-  Html.div [
-    Html.text "home"
+  [
+    Html.div [
+      Html.text "home"
+    ]
   ]
 
 let render (state : State) (dispatch : Msg -> unit) =

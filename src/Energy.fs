@@ -20,13 +20,6 @@ type EnergyDbType =
     Info : string
     Created : int64 }
 
-type EnergyEditType =
-  { ID : String
-    Amount : EditUtils.Field<string>
-    Info : EditUtils.Field<string>
-    Created : EditUtils.Field<DateTime> }
-
-
 module Constants = 
   [<Literal>]
   let KWH = "kWh"
@@ -41,8 +34,24 @@ module Constants =
         Water, M3
     ]
 
+  let EnergyKindToInt = 
+    Map [
+        ElektricityVT, 0
+        ElektricityNT, 1
+        Gas, 2
+        Water, 3
+    ]
+
+  let EnergyKindFromInt = 
+    Map [
+        0, ElektricityVT
+        1, ElektricityNT
+        2, Gas
+        3, Water
+    ]
 
 module Encode =
+
   let Energy (ene : EnergyDbType) =
     Encode.object [
       "ID", (Encode.string ene.ID)
@@ -58,12 +67,19 @@ module Decode =
     fun path value ->
       if Decode.Helpers.isNumber value then
         let value : int = unbox value
-        match value with
-          | 0 -> Ok EnergyKind.ElektricityNT
-          | 1 -> Ok EnergyKind.ElektricityVT
-          | 2 -> Ok EnergyKind.Gas
-          | 3 -> Ok EnergyKind.Water
-          | _ -> (path, BadPrimitive("int value mapping kind out of range", value)) |> Error
+        Ok (Constants.EnergyKindFromInt.[value])
+        // match value with
+        //   | 0 -> Ok EnergyKind.ElektricityNT
+        //   | 1 -> Ok EnergyKind.ElektricityVT
+        //   | 2 -> Ok EnergyKind.Gas
+        //   | 3 -> Ok EnergyKind.Water
+        //   | _ -> (path, BadPrimitive("int value mapping kind out of range", value)) |> Error
+        // match value with
+        //   | x when x in [] -> Ok EnergyKind.ElektricityNT
+        //   | 1 -> Ok EnergyKind.ElektricityVT
+        //   | 2 -> Ok EnergyKind.Gas
+        //   | 3 -> Ok EnergyKind.Water
+        //   | _ -> (path, BadPrimitive("int value mapping kind out of range", value)) |> Error
       else
         (path, BadPrimitive("value mapping kind is not a number", value)) |> Error
 
@@ -94,40 +110,6 @@ module Api =
         // non-OK response goes finishes with an error
         return Error responseText
     }
-
-
-module Render =
-
-  let GridRow (item : EnergyDbType) =
-    let created = item.Created.ToString("dd.MM.yyyy HH:mm")
-    let amount = $"{item.Amount} {Constants.EnergyKindToUnit.[item.Kind]}"
-    [
-      Html.div [ prop.classes [ "cell" ]; prop.children [ Html.text item.ID ] ]
-      Html.div [ prop.classes [ "cell" ]; prop.children [ Html.text created ] ]
-      Html.div [ prop.classes [ "cell" ]; prop.children [ Html.text amount ] ]
-      Html.div [ prop.classes [ "cell" ]; prop.children [ Html.text item.Info] ]
-    ]
-
-  let Grid (renderRows : unit -> ReactElement list) =
-    Html.div [
-      prop.classes [ "columns" ]
-      prop.children [
-        Html.div [
-          prop.classes [ "column" ]
-          prop.children [
-            Html.div [
-              prop.classes ["fixed-grid"; "has-1-cols-mobile"; "has-2-cols-tablet"; "has-4-cols-desktop"]
-              prop.children [
-                Html.div [
-                  prop.classes ["grid is-gap-0"]
-                  prop.children (renderRows ())
-                ]
-              ]
-            ]
-          ]
-        ]
-      ]
-    ]
 
 
 module Utils =
@@ -168,163 +150,259 @@ module Utils =
 
     toUnixTimeSeconds (dt)
 
+  let joinDateAndTime (date: DateTime) (time: DateTime) =
+      let dateo = DateOnly(date.Year, date.Month, date.Day)
+      let timeo = TimeOnly (time.Hour, time.Minute, time.Second)
+      DateTime (dateo, timeo)
 
 
-  // let createEdit amount info date =
-  //   { ID = Guid.NewGuid().ToString ()
-  //     Amount =
-  //       { Input = amount.ToString ()
-  //         Valid = true }
-  //     Info = { Input = info ; Valid = true }
-  //     Created = { Input = date ; Valid = true } }
+module Render =
 
-  // let createEditFromDB (energyDB : EnergyDbType) =
-  //   { ID = energyDB.ID
-  //     Amount =
-  //       { Input = energyDB.Amount.ToString ()
-  //         Valid = true }
-  //     Info = { Input = energyDB.Info ; Valid = true }
-  //     Created =
-  //       { Input = unixTimeToLocalDateTime energyDB.Created
-  //         Valid = true } }
+  type Inputs = { 
+    date: ReactElement
+    time: ReactElement
+    kind: ReactElement
+    amount: ReactElement
+  }
 
-  // let createDBFromEdit (ene : EnergyEditType) : EnergyDbType =
-  //   { ID = ene.ID
-  //     Amount =
-  //       (if ene.Amount.Valid then
-  //          Int64.Parse (ene.Amount.Input)
-  //        else
-  //          0)
-  //     Info =
-  //       (if ene.Info.Valid then
-  //          ene.Info.Input
-  //        else
-  //          "")
-  //     Created =
-  //       (if ene.Created.Valid then
-  //          localDateTimeToUnixTime (ene.Created.Input)
-  //        else
-  //          0) }
+  let GridRow (item : EnergyDbType) =
+    let created = item.Created.ToString("dd.MM.yyyy HH:mm")
+    let amount = $"{item.Amount} {Constants.EnergyKindToUnit.[item.Kind]}"
+    [
+      Html.div [ prop.classes [ "cell" ]; prop.children [ Html.text item.ID ] ]
+      Html.div [ prop.classes [ "cell" ]; prop.children [ Html.text created ] ]
+      Html.div [ prop.classes [ "cell" ]; prop.children [ Html.text amount ] ]
+      Html.div [ prop.classes [ "cell" ]; prop.children [ Html.text item.Info] ]
+    ]
+
+  let Grid (renderRows : unit -> ReactElement list) =
+    Html.div [
+      prop.classes [ "columns" ]
+      prop.children [
+        Html.div [
+          prop.classes [ "column" ]
+          prop.children [
+            Html.div [
+              prop.classes ["fixed-grid"; "has-1-cols-mobile"; "has-2-cols-tablet"; "has-4-cols-desktop"]
+              prop.children [
+                Html.div [
+                  prop.classes ["grid is-gap-0"]
+                  prop.children (renderRows ())
+                ]
+              ]
+            ]
+          ]
+        ]
+      ]
+    ]
+
+  let Edit (inputs: Inputs) =
+    Html.div [ 
+      prop.classes [ "column" ]
+      prop.children [
+
+        Html.div [ 
+          prop.classes [ "column" ]
+          prop.style [ style.backgroundColor "red" ]
+          prop.children [
+            Html.div [ 
+              prop.classes [ "field"; "has-addons" ]
+              prop.children [
+                Html.div [
+                  prop.classes [ "control" ]
+                  prop.children [
+                    Html.div [
+                      prop.classes [ "select" ]
+                      prop.children [ inputs.kind ]
+                    ]
+                  ]
+                ]
+                Html.div [
+                  prop.classes [ "control" ]
+                  prop.children [ inputs.date ]
+                ]
+                Html.div [
+                  prop.classes [ "control" ]
+                  prop.children [ inputs.time ]
+                ]
+              ]
+            ]
+          ]
+        ]
+
+        Html.div [
+          prop.classes [ "column" ; "is-one-fifth" ]
+          prop.style [ style.backgroundColor "blue" ]
+          prop.children [
+            Html.div [
+              prop.classes [ "field has-addons" ]
+              prop.children [
+                Html.div [
+                  prop.classes [ "control is-expanded" ]
+                  prop.children [ inputs.amount ]
+                ]
+                Html.div [
+                  prop.classes [ "control" ]
+                  prop.children [
+                    Html.a [ 
+                      prop.classes [ "button is-static" ]
+                      prop.text "kWh"
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ]
+
+        Html.div [
+          prop.classes [ "column" ]
+          prop.style [ style.backgroundColor "lime" ]
+          prop.children [
+            Html.div [ 
+              prop.classes [ "field" ]
+              prop.children [
+                Html.div [
+                  prop.classes [ "control"; "is-expanded" ]
+                  prop.children [
+                    Html.input [ 
+                      prop.classes [ "input" ] 
+                      prop.type' "text"
+                      prop.placeholder "remark"
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ]
+
+      ]
+    ]
 
 
-// module EditEnergy =
+module Edit =
 
-//   type State = { Energy : EnergyEditType }
+  type State = { 
+    ID : String
+    Kind: EnergyKind
+    Amount : int64
+    Info : string
+    Created : DateTime 
+  }
 
-//   type Msg =
-//     | SetAmount of string
-//     | SetInfo of string
-//     | SetDate of DateTime
+  type Msg =
+  | Date of float
+  | Time of float
+  | Kind of int
+  | Amount of String
 
-//   let empty () =
-//     { Energy = Utils.createEdit 11 "new" DateTime.Now }
+  let empty () =
+    {   ID = ""
+        Kind = EnergyKind.Gas
+        Amount = 0
+        Info = ""
+        Created = DateTime.Now
+    }
 
-//   let amountVD = editIsValid "^\\d+$"
+  let update msg state =
+    match msg with
+    | Msg.Date x ->
+      let created = Utils.joinDateAndTime (DateTime.FromOADate x) state.Created
+      let state = { state with Created = created }
+      state, Cmd.none
+    | Msg.Time x ->
+      let created = Utils.joinDateAndTime state.Created (DateTime.FromOADate x)
+      let state = { state with Created = created }
+      state, Cmd.none
+    | Msg.Kind x ->
+      let state = { state with Kind = Constants.EnergyKindFromInt.[x] }
+      state, Cmd.none
+    | Msg.Amount x ->
+      let state = 
+        match Int64.TryParse x with
+        | (true, amount) -> { state with Amount = amount }
+        | (false, _) -> state
+      state, Cmd.none
 
-//   let update msg state =
-//     match msg with
-//     | SetAmount x ->
-//       let state = { state with Energy.Amount = { Input = x ; Valid = amountVD (x) } }
-//       state, Cmd.none
-//     | SetInfo x ->
-//       let state = { state with Energy.Info = { Input = x ; Valid = true } }
-//       state, Cmd.none
-//     | SetDate x ->
-//       let state = { state with Energy.Created = { Input = x ; Valid = true } }
-//       state, Cmd.none
+  let renderInputs (state : State) (dispatch : Msg -> unit) : Render.Inputs =
+    { 
+      date = Html.input [
+        prop.classes [ "input" ]
+        prop.type' "date"
+        prop.value (state.Created.ToOADate())
+        prop.onChange (Msg.Date >> dispatch)
+      ]
+      time = Html.input [
+        prop.classes [ "input" ]
+        prop.type' "time"
+        prop.value (state.Created.ToOADate())
+        prop.onChange (Msg.Time >> dispatch)
+      ]
+      kind = Html.select [
+          prop.children [
+            Html.option [ prop.text "Electricity VT"; prop.value 1 ]
+            Html.option [ prop.text "Electricity NT"; prop.value 2 ]
+            Html.option [ prop.text "Water"; prop.value 3 ]
+            Html.option [ prop.text "Gas"; prop.value 4 ]
+            Html.option [ prop.text "Coal"; prop.value 5 ]
+            Html.option [ prop.text "Wood"; prop.value 6 ]
+          ]
+          prop.onChange (Msg.Kind >> dispatch)
+      ]
+      amount = Html.input [
+        prop.classes [ "input" ]
+        prop.type' "text" 
+        prop.placeholder "amount"
+        prop.value (state.Amount.ToString())
+        prop.onChange (Msg.Amount >> dispatch)
+      ]
+    }
 
-//   let render (state : State) (dispatch : Msg -> unit) =
-//     Html.div [ 
-//       prop.classes [ "column"; "is-3" ]
-//       prop.children [ 
-//         Html.div [
-//           prop.classes [ "field"; "has-addons" ]
-//           prop.children [
-//             Html.div [
-//               prop.classes [ "control" ]
-//               prop.children [
-//                 Html.input [
-//                   prop.classes [ "input" ]
-//                   prop.placeholder "date"
-//                   prop.type' "date"
-//                   //prop.onTextChange (SetEditedDescription >> dispatch)
-//                 ]
-//               ]
-//             ]
-//             Html.div [
-//               prop.classes [ "control"; "is-expanded" ]
-//               prop.children [
-//                 Html.input [
-//                   prop.classes [ "input" ]
-//                   prop.placeholder "text"
-//                   prop.type' "text"
-//                   //prop.onTextChange (SetEditedDescription >> dispatch)
-//                 ]
-//               ]
-//             ]
-//             Html.div [
-//               prop.classes [ "control" ]
-//               prop.children [
-//                 Html.button [
-//                   prop.classes [ "button"; "is-info" ]
-//                   prop.text "remark"
-//                   //prop.onTextChange (SetEditedDescription >> dispatch)
-//                 ]
-//               ]
-//             ]
-//           ]
-//         ]
-//         Html.div [
-//           prop.classes [ "field" ]
-//           prop.children [
-//             Html.div [
-//               prop.classes [ "control" ]
-//               prop.children [
-//                 Html.input [
-//                   prop.classes [ "input"]
-//                   prop.type' "text"
-//                   prop.placeholder "text"
-//                   //prop.onTextChange (SetEditedDescription >> dispatch)
-//                 ]
-//               ]
-//             ]
-//           ]
-//         ]
-//       ]
-//     ]
+  let render (state : State) (dispatch : Msg -> unit) =
+    let inputs = renderInputs state dispatch
+    Render.Edit inputs
 
 
 module Energy =
 
   type State =
     { 
-      Items : Deferred<List<EnergyDbType>>
+      Rows : Deferred<List<EnergyDbType>>
+      Edit: Edit.State
     }
 
   type Msg =
-  | LoadItems of AsyncOperationEvent<Result<List<EnergyDbType>, string>>
+  | LoadRows of AsyncOperationEvent<Result<List<EnergyDbType>, string>>
+  | Edit of Edit.Msg
 
   let init () : State =
     { 
-      Items = HasNotStartedYet
+      Rows = HasNotStartedYet
+      Edit = Edit.empty()
     }
 
   let update msg state =
     match msg with
-    | Msg.LoadItems Started ->
-      let state = { state with Items = InProgress }
-      state, Cmd.fromAsync (Async.map (fun x -> Msg.LoadItems(Finished(x))) Api.loadItems)
-    | Msg.LoadItems (Finished (Ok items)) ->
-      let state = { state with Items = Resolved (items) }
+    | Msg.LoadRows Started ->
+      let state = { state with Rows = InProgress }
+      state, Cmd.fromAsync (Async.map (fun x -> Msg.LoadRows(Finished(x))) Api.loadItems)
+    | Msg.LoadRows (Finished (Ok items)) ->
+      let state = { state with Rows = Resolved (items) }
       state, Cmd.none
-    | Msg.LoadItems (Finished (Error text)) ->
+    | Msg.LoadRows (Finished (Error text)) ->
       Console.WriteLine text
-      let state = { state with Items = Resolved ([]) }
+      let state = { state with Rows = Resolved ([]) }
       state, Cmd.none
-
+    | Edit x ->
+      let newstate, newcmd = Edit.update x state.Edit
+      { state with Edit = newstate}, newcmd
 
   let render (state : State) (dispatch : Msg -> unit) =
-    match state.Items with
-    | HasNotStartedYet -> Html.div "has not started"
-    | InProgress -> Html.div "in progress"
-    | Resolved items -> Render.Grid (fun () -> List.collect Render.GridRow items)
+    let grid =
+      match state.Rows with
+      | HasNotStartedYet -> Html.div "has not started"
+      | InProgress -> Html.div "in progress"
+      | Resolved items -> Render.Grid (fun () -> List.collect Render.GridRow items)
+    let edit = Edit.render state.Edit ( fun x -> dispatch (Edit x) )
+    [ grid; edit]
