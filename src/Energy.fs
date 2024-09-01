@@ -14,7 +14,7 @@ type EnergyKind =
   | Water
 
 type EnergyDbType =
-  { ID : String
+  { ID : string
     Kind: EnergyKind
     Amount : int64
     Info : string
@@ -59,12 +59,12 @@ module Utils =
   // let dateEditFormat = "dd.MM.yyyy HH:mm:ss"
   let dateEditFormat = "dd.MM HH:mm"
 
-  let unixTimeToString (format : string) (unixTimeSeconds : int64) : string =
+  let unixTimeTostring (format : string) (unixTimeSeconds : int64) : string =
     let dateTimeOffset = DateTimeOffset.FromUnixTimeSeconds (unixTimeSeconds)
     dateTimeOffset.ToString (format)
 
-  // let stringToUnixTime (format : string) (dateTimeString : string) : int64 option =
-  //   match DateTimeOffset.TryParseExact (dateTimeString, format, null, System.Globalization.DateTimeStyles.None) with
+  // let stringToUnixTime (format : string) (dateTimestring : string) : int64 option =
+  //   match DateTimeOffset.TryParseExact (dateTimestring, format, null, System.Globalization.DateTimeStyles.None) with
   //   | true, dateTimeOffset -> Some (dateTimeOffset.ToUnixTimeSeconds ())
   //   | false, _ -> None
 
@@ -83,10 +83,10 @@ module Utils =
     timeSpan.Ticks / (int64) 10000000
 
 
-  let stringToUnixTime (format : string) (dateTimeString : string) : int64 =
+  let stringToUnixTime (format : string) (dateTimestring : string) : int64 =
     let dt =
-      // DateTime.ParseExact (dateTimeString, format, null, System.Globalization.DateTimeStyles.None)
-      DateTime.Parse (dateTimeString)
+      // DateTime.ParseExact (dateTimestring, format, null, System.Globalization.DateTimeStyles.None)
+      DateTime.Parse (dateTimestring)
 
     toUnixTimeSeconds (dt)
 
@@ -94,12 +94,6 @@ module Utils =
   let jsTimestampToDateTime (timestamp: float) : DateTime =
     let dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(int64 timestamp)
     dateTimeOffset.DateTime
-
-  let dateTimeToJSTimestamp (dateTime: DateTime) : float =
-    // Convert DateTime to DateTimeOffset to handle UTC time
-    let dateTimeOffset = DateTimeOffset(dateTime, TimeSpan.Zero)
-    // Calculate the total milliseconds since Unix epoch
-    dateTimeOffset.ToUnixTimeMilliseconds() |> float
 
   let joinDateAndTime (date: DateTime) (time: DateTime) =
     let dateo = DateOnly(date.Year, date.Month, date.Day)
@@ -295,7 +289,7 @@ module Render =
 module Edit =
 
   type State = { 
-    ID : String
+    ID : string
     Kind: EnergyKind
     Amount : int64
     Info : string
@@ -306,25 +300,23 @@ module Edit =
   | Date of float
   | Time of float
   | Kind of int
-  | Amount of String
+  | Amount of string
 
   let empty () =
     {   ID = ""
         Kind = EnergyKind.Gas
         Amount = 0
         Info = ""
-        Created = DateTime.UtcNow
+        Created = DateTime.Now
     }
 
   let update msg state =
     match msg with
     | Msg.Date x ->
-      Console.WriteLine $"date value {x}"
       let created = Utils.joinDateAndTime (Utils.jsTimestampToDateTime x) state.Created
       let state = { state with Created = created }
       state, Cmd.none
     | Msg.Time x ->
-      Console.WriteLine $"time value {x}"
       let created = Utils.joinDateAndTime state.Created (Utils.jsTimestampToDateTime x)
       let state = { state with Created = created }
       state, Cmd.none
@@ -342,19 +334,17 @@ module Edit =
       state, Cmd.none
 
   let renderInputs (state : State) (dispatch : Msg -> unit) : Render.Inputs =
-    Console.WriteLine $"render datetime {state.Created}"
-    Console.WriteLine $"render timestamp {Utils.dateTimeToJSTimestamp state.Created}"
     { 
       date = Html.input [
         prop.classes [ "input" ]
         prop.type' "date"
-        prop.value (Utils.dateTimeToJSTimestamp state.Created)
+        prop.value (state.Created.ToString("yyyy-MM-dd"))
         prop.onChange (Msg.Date >> dispatch)
       ]
       time = Html.input [
         prop.classes [ "input" ]
         prop.type' "time"
-        prop.value (Utils.dateTimeToJSTimestamp state.Created)
+        prop.value (state.Created.ToString("HH:mm"))
         prop.onChange (Msg.Time >> dispatch)
       ]
       kind = Html.select [
@@ -409,7 +399,6 @@ module Energy =
       let state = { state with Rows = Resolved (items) }
       state, Cmd.none
     | Msg.LoadRows (Finished (Error text)) ->
-      Console.WriteLine text
       let state = { state with Rows = Resolved ([]) }
       state, Cmd.none
     | Edit x ->
