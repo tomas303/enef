@@ -10,7 +10,7 @@ type Page =
   | Home
   | Overview
   | Pricelists
-// | Energy
+  | Editation
 
 
 type State =
@@ -26,7 +26,7 @@ let init () =
     { CurrentPage = Page.Home
       Energy = Energy.init () }
 
-  let cmd = Cmd.ofMsg (Msg.SwitchPage Page.Home)
+  let cmd = Cmd.ofMsg (Msg.SwitchPage state.CurrentPage)
   state, cmd
 
 let update msg state =
@@ -35,12 +35,12 @@ let update msg state =
     let newstate = { state with CurrentPage = page }
 
     match newstate.CurrentPage with
-    // | Page.Energy -> newstate, Cmd.ofMsg (Msg.EnergyMsg (Energy.Msg.InitPage))
+    | Page.Home -> newstate, Page.Editation |> Msg.SwitchPage |> Cmd.ofMsg
+    | Page.Editation -> newstate, Energy.Msg.InitPage |> Msg.EnergyMsg |> Cmd.ofMsg
     | _ -> newstate, Cmd.none
   | EnergyMsg msg ->
     let energy, cmd = Energy.update msg state.Energy
     { state with Energy = energy }, Cmd.map Msg.EnergyMsg cmd
-
 
 let renderMenuNavItem (label : string) (handler : unit -> unit) =
   Html.p [
@@ -86,12 +86,16 @@ let renderApp (state : State) (dispatch : Msg -> unit) (renderPage : State -> (M
     ]
   ]
 
-let renderHome (state : State) (dispatch : Msg -> unit) =
+let renderEditation (state : State) (dispatch : Msg -> unit) =
   Energy.render state.Energy (Msg.EnergyMsg >> dispatch)
+
+let renderHome (state : State) (dispatch : Msg -> unit) =
+  renderEditation state dispatch
 
 let render (state : State) (dispatch : Msg -> unit) =
   match state.CurrentPage with
   | Page.Home -> renderApp state dispatch renderHome
   | Page.Overview -> Html.div "Overview - to be done"
   | Page.Pricelists -> Html.div "Pricelists - to be done"
+  | Page.Editation -> renderApp state dispatch renderEditation
 

@@ -381,6 +381,7 @@ module Energy =
     }
 
   type Msg =
+  | InitPage
   | LoadRows of AsyncOperationEvent<Result<List<EnergyDbType>, string>>
   | Edit of Edit.Msg
 
@@ -392,6 +393,8 @@ module Energy =
 
   let update msg state =
     match msg with
+    | Msg.InitPage ->
+      state, Cmd.ofMsg (Msg.LoadRows Started)
     | Msg.LoadRows Started ->
       let state = { state with Rows = InProgress }
       state, Cmd.fromAsync (Async.map (fun x -> Msg.LoadRows(Finished(x))) Api.loadItems)
