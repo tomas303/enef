@@ -158,6 +158,17 @@ module Api =
         return Error responseText
     }
 
+  let saveItem (item : EnergyDbType) =
+    async {
+
+      let json = Encode.Energy item
+      let body = Encode.toString 2 json
+      let! (status, responseText) = Http.post "http://localhost:8085/energies" body
+
+      match status with
+      | 200 -> return Ok 200
+      | _ -> return Error responseText
+    }
 
 
 
@@ -302,6 +313,22 @@ module Edit =
   | Kind of int
   | Amount of string
 
+// type EnergyDbType =
+//   { ID : string
+//     Kind: EnergyKind
+//     Amount : int64
+//     Info : string
+//     Created : int64 }
+  let getForDB (state: State): EnergyDbType = 
+    {
+      ID = state.ID
+      Kind = state.Kind
+      Amount = state.Amount
+      Info = state.Info
+      Created = (Utils.toUnixTimeSeconds state.Created)
+    }
+
+
   let empty () =
     {   ID = ""
         Kind = EnergyKind.Gas
@@ -384,6 +411,7 @@ module Energy =
   | InitPage
   | LoadRows of AsyncOperationEvent<Result<List<EnergyDbType>, string>>
   | Edit of Edit.Msg
+  | SaveItem of AsyncOperationEvent<Result<int, string>>
 
   let init () : State =
     { 
@@ -407,6 +435,13 @@ module Energy =
     | Edit x ->
       let newstate, newcmd = Edit.update x state.Edit
       { state with Edit = newstate}, newcmd
+    | Msg.SaveItem Started ->
+      let asyncSave = (Api.saveItem(Edit.getForDB state.Edit))
+      state, Cmd.fromAsync (Async.map (fun x -> Msg.SaveItem(Finished(x))) asyncSave )
+    | Msg.SaveItem (Finished (Ok returnCode)) ->
+      state, Cmd.none
+    | Msg.SaveItem (Finished (Error text)) ->
+      state, Cmd.none
 
   let render (state : State) (dispatch : Msg -> unit) =
     let grid =
@@ -415,4 +450,22 @@ module Energy =
       | InProgress -> Html.div "in progress"
       | Resolved items -> Render.Grid (fun () -> List.collect Render.GridRow items)
     let edit = Edit.render state.Edit ( fun x -> dispatch (Edit x) )
-    [ grid; edit]
+
+    let addButton =
+      Html.div [
+        prop.classes [ "columns" ]
+        prop.children [
+          Html.div [
+            prop.classes [ "column" ]
+            prop.children [
+              Html.button [
+                prop.classes [ "button"; "is-primary"; "is-pulled-right" ]
+                prop.text "Add"
+                prop.onClick ( fun _ -> dispatch (SaveItem Started) )
+              ]
+            ]
+          ]
+        ]
+      ]
+
+    [ grid; edit; addButton]
