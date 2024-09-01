@@ -8,10 +8,10 @@ open Thoth.Json
 open Fable.DateFunctions
 
 type EnergyKind =
-  | ElektricityVT = 0
-  | ElektricityNT = 1
-  | Gas = 2
-  | Water = 3
+  | ElektricityVT
+  | ElektricityNT
+  | Gas
+  | Water
 
 type EnergyDbType =
   { ID : String
@@ -33,6 +33,22 @@ module Constants =
         EnergyKind.ElektricityNT, KWH
         EnergyKind.Gas, M3
         EnergyKind.Water, M3
+    ]
+
+  let EnergyKindToInt = 
+    Map [
+        EnergyKind.ElektricityVT, 1
+        EnergyKind.ElektricityNT, 2
+        EnergyKind.Gas, 3
+        EnergyKind.Water, 4
+    ]
+
+  let IntToEnergyKind = 
+    Map [
+        1, EnergyKind.ElektricityVT
+        2, EnergyKind.ElektricityNT
+        3, EnergyKind.Gas
+        4, EnergyKind.Water
     ]
 
 
@@ -74,17 +90,27 @@ module Utils =
 
     toUnixTimeSeconds (dt)
 
+
+  let jsTimestampToDateTime (timestamp: float) : DateTime =
+    let dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(int64 timestamp)
+    dateTimeOffset.DateTime
+
+  let dateTimeToJSTimestamp (dateTime: DateTime) : float =
+    // Convert DateTime to DateTimeOffset to handle UTC time
+    let dateTimeOffset = DateTimeOffset(dateTime, TimeSpan.Zero)
+    // Calculate the total milliseconds since Unix epoch
+    dateTimeOffset.ToUnixTimeMilliseconds() |> float
+
   let joinDateAndTime (date: DateTime) (time: DateTime) =
-      let dateo = DateOnly(date.Year, date.Month, date.Day)
-      let timeo = TimeOnly (time.Hour, time.Minute, time.Second)
-      DateTime (dateo, timeo)
+    let dateo = DateOnly(date.Year, date.Month, date.Day)
+    let timeo = TimeOnly (time.Hour, time.Minute, time.Second)
+    let dateTime = DateTime(dateo.Year, dateo.Month, dateo.Day, timeo.Hour, timeo.Minute, timeo.Second)
+    dateTime
 
-
-  let castToEnum<'TEnum when 'TEnum :> Enum>(value: int) : 'TEnum option =
-      if Enum.IsDefined(typeof<'TEnum>, value) then
-          Some (Enum.ToObject(typeof<'TEnum>, value) :?> 'TEnum)
-      else
-          None
+  let intToEnergyKind (value: int): EnergyKind option =
+    match value with
+    | x when (Map.containsKey value Constants.IntToEnergyKind) -> Some(Constants.IntToEnergyKind.[x])
+    | _ -> None
 
 
 module Encode =
@@ -104,7 +130,7 @@ module Decode =
     fun path value ->
       if Decode.Helpers.isNumber value then
         let value : int = unbox value
-        match Utils.castToEnum<EnergyKind>(value) with
+        match Utils.intToEnergyKind(value) with
         | Some x -> Ok x
         | None -> (path, BadPrimitive("int value mapping kind out of range", value)) |> Error
       else
@@ -287,22 +313,24 @@ module Edit =
         Kind = EnergyKind.Gas
         Amount = 0
         Info = ""
-        Created = DateTime.Now
+        Created = DateTime.UtcNow
     }
 
   let update msg state =
     match msg with
     | Msg.Date x ->
-      let created = Utils.joinDateAndTime (DateTime.FromOADate x) state.Created
+      Console.WriteLine $"date value {x}"
+      let created = Utils.joinDateAndTime (Utils.jsTimestampToDateTime x) state.Created
       let state = { state with Created = created }
       state, Cmd.none
     | Msg.Time x ->
-      let created = Utils.joinDateAndTime state.Created (DateTime.FromOADate x)
+      Console.WriteLine $"time value {x}"
+      let created = Utils.joinDateAndTime state.Created (Utils.jsTimestampToDateTime x)
       let state = { state with Created = created }
       state, Cmd.none
     | Msg.Kind x ->
       let state = 
-        match Utils.castToEnum<EnergyKind>(x) with
+        match Utils.intToEnergyKind(x) with
         | Some x -> { state with Kind = x }
         | None -> state
       state, Cmd.none
@@ -314,17 +342,19 @@ module Edit =
       state, Cmd.none
 
   let renderInputs (state : State) (dispatch : Msg -> unit) : Render.Inputs =
+    Console.WriteLine $"render datetime {state.Created}"
+    Console.WriteLine $"render timestamp {Utils.dateTimeToJSTimestamp state.Created}"
     { 
       date = Html.input [
         prop.classes [ "input" ]
         prop.type' "date"
-        prop.value (state.Created.ToOADate())
+        prop.value (Utils.dateTimeToJSTimestamp state.Created)
         prop.onChange (Msg.Date >> dispatch)
       ]
       time = Html.input [
         prop.classes [ "input" ]
         prop.type' "time"
-        prop.value (state.Created.ToOADate())
+        prop.value (Utils.dateTimeToJSTimestamp state.Created)
         prop.onChange (Msg.Time >> dispatch)
       ]
       kind = Html.select [

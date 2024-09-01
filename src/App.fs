@@ -87,18 +87,11 @@ let renderApp (state : State) (dispatch : Msg -> unit) (renderPage : State -> (M
   ]
 
 let renderHome (state : State) (dispatch : Msg -> unit) =
-  [
-    Html.div [
-      Html.text "home"
-    ]
-  ]
+  Energy.render state.Energy (Msg.EnergyMsg >> dispatch)
 
 let render (state : State) (dispatch : Msg -> unit) =
   match state.CurrentPage with
   | Page.Home -> renderApp state dispatch renderHome
-  // | Page.Energy ->
-  //   let pageContent =
-  //     Energy.render state.Energy (fun msg -> dispatch (Msg.EnergyMsg msg))
   | Page.Overview -> Html.div "Overview - to be done"
   | Page.Pricelists -> Html.div "Pricelists - to be done"
 
