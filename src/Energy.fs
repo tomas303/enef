@@ -8,10 +8,10 @@ open Thoth.Json
 open Fable.DateFunctions
 
 type EnergyKind =
-  | ElektricityVT
-  | ElektricityNT
-  | Gas
-  | Water
+  | ElektricityVT = 0
+  | ElektricityNT = 1
+  | Gas = 2
+  | Water = 3
 
 type EnergyDbType =
   { ID : String
@@ -19,6 +19,7 @@ type EnergyDbType =
     Amount : int64
     Info : string
     Created : int64 }
+
 
 module Constants = 
   [<Literal>]
@@ -28,88 +29,11 @@ module Constants =
 
   let EnergyKindToUnit = 
     Map [
-        ElektricityVT, KWH
-        ElektricityNT, KWH
-        Gas, M3
-        Water, M3
+        EnergyKind.ElektricityVT, KWH
+        EnergyKind.ElektricityNT, KWH
+        EnergyKind.Gas, M3
+        EnergyKind.Water, M3
     ]
-
-  let EnergyKindToInt = 
-    Map [
-        ElektricityVT, 0
-        ElektricityNT, 1
-        Gas, 2
-        Water, 3
-    ]
-
-  let EnergyKindFromInt = 
-    Map [
-        0, ElektricityVT
-        1, ElektricityNT
-        2, Gas
-        3, Water
-    ]
-
-module Encode =
-
-  let Energy (ene : EnergyDbType) =
-    Encode.object [
-      "ID", (Encode.string ene.ID)
-      "Amount", (Encode.int64 ene.Amount)
-      "Info", (Encode.string ene.Info)
-      "Created", (Encode.int64 ene.Created)
-    ]
-
-
-module Decode =
-
-  let EnergyKind: Decoder<EnergyKind> =
-    fun path value ->
-      if Decode.Helpers.isNumber value then
-        let value : int = unbox value
-        Ok (Constants.EnergyKindFromInt.[value])
-        // match value with
-        //   | 0 -> Ok EnergyKind.ElektricityNT
-        //   | 1 -> Ok EnergyKind.ElektricityVT
-        //   | 2 -> Ok EnergyKind.Gas
-        //   | 3 -> Ok EnergyKind.Water
-        //   | _ -> (path, BadPrimitive("int value mapping kind out of range", value)) |> Error
-        // match value with
-        //   | x when x in [] -> Ok EnergyKind.ElektricityNT
-        //   | 1 -> Ok EnergyKind.ElektricityVT
-        //   | 2 -> Ok EnergyKind.Gas
-        //   | 3 -> Ok EnergyKind.Water
-        //   | _ -> (path, BadPrimitive("int value mapping kind out of range", value)) |> Error
-      else
-        (path, BadPrimitive("value mapping kind is not a number", value)) |> Error
-
-  let Energy : Decoder<EnergyDbType> =
-    Decode.object (fun fields ->
-      { ID = fields.Required.At [ "ID" ] Decode.string
-        Amount = fields.Required.At [ "Amount" ] Decode.int64
-        Info = fields.Required.At [ "Info" ] Decode.string
-        Created = fields.Required.At [ "Created" ] Decode.int64
-        Kind = fields.Required.At [ "Kind" ] EnergyKind
-      }
-    )
-
-
-module Api =
-  let loadItems =
-    async {
-      let! (status, responseText) = Http.get "http://localhost:8085/energies"
-
-      match status with
-      | 200 ->
-        let items = Decode.fromString (Decode.list Decode.Energy) responseText
-
-        match items with
-        | Ok x -> return Ok (x)
-        | Error parseError -> return Error parseError
-      | _ ->
-        // non-OK response goes finishes with an error
-        return Error responseText
-    }
 
 
 module Utils =
@@ -154,6 +78,67 @@ module Utils =
       let dateo = DateOnly(date.Year, date.Month, date.Day)
       let timeo = TimeOnly (time.Hour, time.Minute, time.Second)
       DateTime (dateo, timeo)
+
+
+  let castToEnum<'TEnum when 'TEnum :> Enum>(value: int) : 'TEnum option =
+      if Enum.IsDefined(typeof<'TEnum>, value) then
+          Some (Enum.ToObject(typeof<'TEnum>, value) :?> 'TEnum)
+      else
+          None
+
+
+module Encode =
+
+  let Energy (ene : EnergyDbType) =
+    Encode.object [
+      "ID", (Encode.string ene.ID)
+      "Amount", (Encode.int64 ene.Amount)
+      "Info", (Encode.string ene.Info)
+      "Created", (Encode.int64 ene.Created)
+    ]
+
+
+module Decode =
+
+  let EnergyKind: Decoder<EnergyKind> =
+    fun path value ->
+      if Decode.Helpers.isNumber value then
+        let value : int = unbox value
+        match Utils.castToEnum<EnergyKind>(value) with
+        | Some x -> Ok x
+        | None -> (path, BadPrimitive("int value mapping kind out of range", value)) |> Error
+      else
+        (path, BadPrimitive("value mapping kind is not a number", value)) |> Error
+
+  let Energy : Decoder<EnergyDbType> =
+    Decode.object (fun fields ->
+      { ID = fields.Required.At [ "ID" ] Decode.string
+        Amount = fields.Required.At [ "Amount" ] Decode.int64
+        Info = fields.Required.At [ "Info" ] Decode.string
+        Created = fields.Required.At [ "Created" ] Decode.int64
+        Kind = fields.Required.At [ "Kind" ] EnergyKind
+      }
+    )
+
+
+module Api =
+  let loadItems =
+    async {
+      let! (status, responseText) = Http.get "http://localhost:8085/energies"
+
+      match status with
+      | 200 ->
+        let items = Decode.fromString (Decode.list Decode.Energy) responseText
+
+        match items with
+        | Ok x -> return Ok (x)
+        | Error parseError -> return Error parseError
+      | _ ->
+        // non-OK response goes finishes with an error
+        return Error responseText
+    }
+
+
 
 
 module Render =
@@ -316,7 +301,10 @@ module Edit =
       let state = { state with Created = created }
       state, Cmd.none
     | Msg.Kind x ->
-      let state = { state with Kind = Constants.EnergyKindFromInt.[x] }
+      let state = 
+        match Utils.castToEnum<EnergyKind>(x) with
+        | Some x -> { state with Kind = x }
+        | None -> state
       state, Cmd.none
     | Msg.Amount x ->
       let state = 
