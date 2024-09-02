@@ -35,6 +35,14 @@ module Constants =
         EnergyKind.Water, M3
     ]
 
+  let EnergyKindToText = 
+    Map [
+        EnergyKind.ElektricityVT, "Electricity VT"
+        EnergyKind.ElektricityNT, "Electricity NT"
+        EnergyKind.Gas, "Gas"
+        EnergyKind.Water, "Water"
+    ]
+
   let EnergyKindToInt = 
     Map [
         EnergyKind.ElektricityVT, 1
@@ -112,6 +120,7 @@ module Encode =
   let Energy (ene : EnergyDbType) =
     Encode.object [
       "ID", (Encode.string ene.ID)
+      "Kind", (Encode.int ( Constants.EnergyKindToInt.[ene.Kind]))
       "Amount", (Encode.int64 ene.Amount)
       "Info", (Encode.string ene.Info)
       "Created", (Encode.int64 ene.Created)
@@ -179,13 +188,16 @@ module Render =
     time: ReactElement
     kind: ReactElement
     amount: ReactElement
+    info: ReactElement
   }
 
   let GridRow (item : EnergyDbType) =
-    let created = item.Created.ToString("dd.MM.yyyy HH:mm")
+    let kind = Constants.EnergyKindToText.[item.Kind]
+    let created = (Utils.unixTimeToLocalDateTime item.Created).ToString("dd.MM.yyyy HH:mm")
     let amount = $"{item.Amount} {Constants.EnergyKindToUnit.[item.Kind]}"
     [
-      Html.div [ prop.classes [ "cell" ]; prop.children [ Html.text item.ID ] ]
+      // Html.div [ prop.classes [ "cell" ]; prop.children [ Html.text item.ID ] ]
+      Html.div [ prop.classes [ "cell" ]; prop.children [ Html.text kind ] ]
       Html.div [ prop.classes [ "cell" ]; prop.children [ Html.text created ] ]
       Html.div [ prop.classes [ "cell" ]; prop.children [ Html.text amount ] ]
       Html.div [ prop.classes [ "cell" ]; prop.children [ Html.text item.Info] ]
@@ -280,13 +292,7 @@ module Render =
               prop.children [
                 Html.div [
                   prop.classes [ "control"; "is-expanded" ]
-                  prop.children [
-                    Html.input [ 
-                      prop.classes [ "input" ] 
-                      prop.type' "text"
-                      prop.placeholder "remark"
-                    ]
-                  ]
+                  prop.children [ inputs.info ]
                 ]
               ]
             ]
@@ -310,8 +316,9 @@ module Edit =
   type Msg =
   | Date of float
   | Time of float
-  | Kind of int
+  | Kind of string
   | Amount of string
+  | Info of string
 
 // type EnergyDbType =
 //   { ID : string
@@ -325,12 +332,12 @@ module Edit =
       Kind = state.Kind
       Amount = state.Amount
       Info = state.Info
-      Created = (Utils.toUnixTimeSeconds state.Created)
+      Created = (Utils.localDateTimeToUnixTime state.Created)
     }
 
 
   let empty () =
-    {   ID = ""
+    {   ID = Guid.NewGuid().ToString()
         Kind = EnergyKind.Gas
         Amount = 0
         Info = ""
@@ -348,19 +355,33 @@ module Edit =
       let state = { state with Created = created }
       state, Cmd.none
     | Msg.Kind x ->
-      let state = 
-        match Utils.intToEnergyKind(x) with
-        | Some x -> { state with Kind = x }
-        | None -> state
-      state, Cmd.none
+      match System.Int32.TryParse(x) with
+      | (true, intValue) ->
+        let state = 
+          match Utils.intToEnergyKind(intValue) with
+          | Some x -> { state with Kind = x }
+          | None -> state
+        state, Cmd.none
+      | (false, _) -> state, Cmd.none
+
     | Msg.Amount x ->
       let state = 
         match Int64.TryParse x with
         | (true, amount) -> { state with Amount = amount }
         | (false, _) -> state
       state, Cmd.none
+    | Msg.Info x ->
+      let state = { state with Info = x }
+      state, Cmd.none
 
   let renderInputs (state : State) (dispatch : Msg -> unit) : Render.Inputs =
+
+    let kindSelectOptions = 
+      Constants.EnergyKindToText
+      |> Map.toList
+      |> List.map ( fun (energyKind, text) -> 
+          Html.option [ prop.text text; prop.value Constants.EnergyKindToInt.[energyKind] ] )
+
     { 
       date = Html.input [
         prop.classes [ "input" ]
@@ -375,14 +396,7 @@ module Edit =
         prop.onChange (Msg.Time >> dispatch)
       ]
       kind = Html.select [
-          prop.children [
-            Html.option [ prop.text "Electricity VT"; prop.value 1 ]
-            Html.option [ prop.text "Electricity NT"; prop.value 2 ]
-            Html.option [ prop.text "Water"; prop.value 3 ]
-            Html.option [ prop.text "Gas"; prop.value 4 ]
-            Html.option [ prop.text "Coal"; prop.value 5 ]
-            Html.option [ prop.text "Wood"; prop.value 6 ]
-          ]
+          prop.children kindSelectOptions
           prop.onChange (Msg.Kind >> dispatch)
       ]
       amount = Html.input [
@@ -391,6 +405,13 @@ module Edit =
         prop.placeholder "amount"
         prop.value (state.Amount.ToString())
         prop.onChange (Msg.Amount >> dispatch)
+      ]
+      info = Html.input [ 
+        prop.classes [ "input" ] 
+        prop.type' "text"
+        prop.placeholder "remark"
+        prop.value (state.Info)
+        prop.onChange (Msg.Info >> dispatch)
       ]
     }
 
