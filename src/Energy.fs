@@ -167,6 +167,22 @@ module Api =
         return Error responseText
     }
 
+  let loadLastRows =
+    async {
+      let! (status, responseText) = Http.get "http://localhost:8085/lastenergies?count=10"
+
+      match status with
+      | 200 ->
+        let items = Decode.fromString (Decode.list Decode.Energy) responseText
+
+        match items with
+        | Ok x -> return Ok (x)
+        | Error parseError -> return Error parseError
+      | _ ->
+        // non-OK response goes finishes with an error
+        return Error responseText
+    }
+
   let saveItem (item : EnergyDbType) =
     async {
 
@@ -175,7 +191,8 @@ module Api =
       let! (status, responseText) = Http.post "http://localhost:8085/energies" body
 
       match status with
-      | 200 -> return Ok 200
+      | 200 -> return Ok item
+      | 201 -> return Ok item
       | _ -> return Error responseText
     }
 
@@ -424,52 +441,61 @@ module Energy =
 
   type State =
     { 
-      Rows : Deferred<List<EnergyDbType>>
+      LastRows : Deferred<List<EnergyDbType>>
       Edit: Edit.State
+      LastEdits: List<EnergyDbType>
     }
 
   type Msg =
   | InitPage
-  | LoadRows of AsyncOperationEvent<Result<List<EnergyDbType>, string>>
+  | LoadLastRows of AsyncOperationEvent<Result<List<EnergyDbType>, string>>
   | Edit of Edit.Msg
-  | SaveItem of AsyncOperationEvent<Result<int, string>>
+  | SaveItem of AsyncOperationEvent<Result<EnergyDbType, string>>
 
   let init () : State =
     { 
-      Rows = HasNotStartedYet
+      LastRows = HasNotStartedYet
       Edit = Edit.empty()
+      LastEdits = []
     }
 
   let update msg state =
     match msg with
     | Msg.InitPage ->
-      state, Cmd.ofMsg (Msg.LoadRows Started)
-    | Msg.LoadRows Started ->
-      let state = { state with Rows = InProgress }
-      state, Cmd.fromAsync (Async.map (fun x -> Msg.LoadRows(Finished(x))) Api.loadItems)
-    | Msg.LoadRows (Finished (Ok items)) ->
-      let state = { state with Rows = Resolved (items) }
-      state, Cmd.none
-    | Msg.LoadRows (Finished (Error text)) ->
-      let state = { state with Rows = Resolved ([]) }
-      state, Cmd.none
+      state, Cmd.ofMsg (Msg.LoadLastRows Started)
+    | Msg.LoadLastRows x ->
+      match x with
+      | Started ->
+        let state = { state with LastRows = InProgress }
+        state, Cmd.fromAsync (Async.map (fun x -> Msg.LoadLastRows(Finished(x))) Api.loadLastRows)
+      | Finished (Ok items) ->
+        let state = { state with LastRows = Resolved (items); LastEdits=items }
+        state, Cmd.none
+      | Finished (Error text) ->
+        let state = { state with LastRows = Resolved ([]) }
+        state, Cmd.none
     | Edit x ->
       let newstate, newcmd = Edit.update x state.Edit
       { state with Edit = newstate}, newcmd
-    | Msg.SaveItem Started ->
-      let asyncSave = (Api.saveItem(Edit.getForDB state.Edit))
-      state, Cmd.fromAsync (Async.map (fun x -> Msg.SaveItem(Finished(x))) asyncSave )
-    | Msg.SaveItem (Finished (Ok returnCode)) ->
-      state, Cmd.none
-    | Msg.SaveItem (Finished (Error text)) ->
-      state, Cmd.none
+    | Msg.SaveItem x ->
+      match x with
+      | Started ->
+        let asyncSave = (Api.saveItem(Edit.getForDB state.Edit))
+        state, Cmd.fromAsync (Async.map (fun x -> Msg.SaveItem(Finished(x))) asyncSave )
+      | Finished (Ok item) ->
+        let lastedits = state.LastEdits @ [item]
+        let lastedits2 = 
+          if List.length(lastedits) > 10 then
+            List.skip (List.length lastedits - 10) lastedits
+          else
+            lastedits
+        {state with LastEdits = lastedits2}, Cmd.none
+      | Finished (Error text) ->
+        state, Cmd.none
 
   let render (state : State) (dispatch : Msg -> unit) =
     let grid =
-      match state.Rows with
-      | HasNotStartedYet -> Html.div "has not started"
-      | InProgress -> Html.div "in progress"
-      | Resolved items -> Render.Grid (fun () -> List.collect Render.GridRow items)
+      Render.Grid (fun () -> List.collect Render.GridRow state.LastEdits)
     let edit = Edit.render state.Edit ( fun x -> dispatch (Edit x) )
 
     let addButton =
