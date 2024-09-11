@@ -16,7 +16,7 @@ type EnergyKind =
 type EnergyDbType =
   { ID : string
     Kind: EnergyKind
-    Amount : int64
+    Amount : int
     Info : string
     Created : int64 }
 
@@ -121,7 +121,7 @@ module Encode =
     Encode.object [
       "ID", (Encode.string ene.ID)
       "Kind", (Encode.int ( Constants.EnergyKindToInt.[ene.Kind]))
-      "Amount", (Encode.int64 ene.Amount)
+      "Amount", (Encode.int ene.Amount)
       "Info", (Encode.string ene.Info)
       "Created", (Encode.int64 ene.Created)
     ]
@@ -142,7 +142,7 @@ module Decode =
   let Energy : Decoder<EnergyDbType> =
     Decode.object (fun fields ->
       { ID = fields.Required.At [ "ID" ] Decode.string
-        Amount = fields.Required.At [ "Amount" ] Decode.int64
+        Amount = fields.Required.At [ "Amount" ] Decode.int
         Info = fields.Required.At [ "Info" ] Decode.string
         Created = fields.Required.At [ "Created" ] Decode.int64
         Kind = fields.Required.At [ "Kind" ] EnergyKind
@@ -325,7 +325,7 @@ module Edit =
   type State = { 
     ID : string
     Kind: EnergyKind
-    Amount : int64
+    Amount : int
     Info : string
     Created : DateTime 
   }
@@ -383,7 +383,7 @@ module Edit =
 
     | Msg.Amount x ->
       let state = 
-        match Int64.TryParse x with
+        match System.Int32.TryParse x with
         | (true, amount) -> { state with Amount = amount }
         | (false, _) -> state
       state, Cmd.none
