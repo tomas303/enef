@@ -4,7 +4,6 @@
     <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="EditUtils.fs" />
     <Compile Include="Extensions.fs" />
     <Compile Include="Energy.fs" />
     <Compile Include="App.fs" />

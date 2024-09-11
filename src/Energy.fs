@@ -62,20 +62,6 @@ module Constants =
 
 module Utils =
 
-  let amountVD = editIsValid "^\\d+$"
-
-  // let dateEditFormat = "dd.MM.yyyy HH:mm:ss"
-  let dateEditFormat = "dd.MM HH:mm"
-
-  let unixTimeTostring (format : string) (unixTimeSeconds : int64) : string =
-    let dateTimeOffset = DateTimeOffset.FromUnixTimeSeconds (unixTimeSeconds)
-    dateTimeOffset.ToString (format)
-
-  // let stringToUnixTime (format : string) (dateTimestring : string) : int64 option =
-  //   match DateTimeOffset.TryParseExact (dateTimestring, format, null, System.Globalization.DateTimeStyles.None) with
-  //   | true, dateTimeOffset -> Some (dateTimeOffset.ToUnixTimeSeconds ())
-  //   | false, _ -> None
-
   let unixTimeToLocalDateTime (unixTimeSeconds : int64) : DateTime =
     let dateTimeOffset = DateTimeOffset.FromUnixTimeSeconds (unixTimeSeconds)
     dateTimeOffset.ToLocalTime().LocalDateTime
@@ -89,15 +75,6 @@ module Utils =
     let unixEpoch = new DateTime (1970, 1, 1, 0, 0, 0, DateTimeKind.Utc) // Unix epoch in UTC
     let timeSpan = dateTime - unixEpoch
     timeSpan.Ticks / (int64) 10000000
-
-
-  let stringToUnixTime (format : string) (dateTimestring : string) : int64 =
-    let dt =
-      // DateTime.ParseExact (dateTimestring, format, null, System.Globalization.DateTimeStyles.None)
-      DateTime.Parse (dateTimestring)
-
-    toUnixTimeSeconds (dt)
-
 
   let jsTimestampToDateTime (timestamp: float) : DateTime =
     let dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(int64 timestamp)
@@ -337,12 +314,6 @@ module Edit =
   | Amount of string
   | Info of string
 
-// type EnergyDbType =
-//   { ID : string
-//     Kind: EnergyKind
-//     Amount : int64
-//     Info : string
-//     Created : int64 }
   let getForDB (state: State): EnergyDbType = 
     {
       ID = state.ID
