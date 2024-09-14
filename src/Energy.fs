@@ -13,7 +13,7 @@ type EnergyKind =
   | Gas
   | Water
 
-type EnergyDbType =
+type Energy =
   { ID : string
     Kind: EnergyKind
     Amount : int
@@ -21,7 +21,7 @@ type EnergyDbType =
     Created : int64 }
 
 
-module Constants = 
+module private Constants = 
   [<Literal>]
   let KWH = "kWh"
   [<Literal>]
@@ -60,7 +60,7 @@ module Constants =
     ]
 
 
-module Utils =
+module private Utils =
 
   let unixTimeToLocalDateTime (unixTimeSeconds : int64) : DateTime =
     let dateTimeOffset = DateTimeOffset.FromUnixTimeSeconds (unixTimeSeconds)
@@ -92,9 +92,9 @@ module Utils =
     | _ -> None
 
 
-module Encode =
+module private Encode =
 
-  let Energy (ene : EnergyDbType) =
+  let energy (ene : Energy) =
     Encode.object [
       "ID", (Encode.string ene.ID)
       "Kind", (Encode.int ( Constants.EnergyKindToInt.[ene.Kind]))
@@ -104,9 +104,9 @@ module Encode =
     ]
 
 
-module Decode =
+module private Decode =
 
-  let EnergyKind: Decoder<EnergyKind> =
+  let energyKind: Decoder<EnergyKind> =
     fun path value ->
       if Decode.Helpers.isNumber value then
         let value : int = unbox value
@@ -116,26 +116,24 @@ module Decode =
       else
         (path, BadPrimitive("value mapping kind is not a number", value)) |> Error
 
-  let Energy : Decoder<EnergyDbType> =
+  let energy : Decoder<Energy> =
     Decode.object (fun fields ->
       { ID = fields.Required.At [ "ID" ] Decode.string
         Amount = fields.Required.At [ "Amount" ] Decode.int
         Info = fields.Required.At [ "Info" ] Decode.string
         Created = fields.Required.At [ "Created" ] Decode.int64
-        Kind = fields.Required.At [ "Kind" ] EnergyKind
+        Kind = fields.Required.At [ "Kind" ] energyKind
       }
     )
 
 
-module Api =
+module private Api =
   let loadItems =
     async {
       let! (status, responseText) = Http.get "http://localhost:8085/energies"
-
       match status with
       | 200 ->
-        let items = Decode.fromString (Decode.list Decode.Energy) responseText
-
+        let items = Decode.fromString (Decode.list Decode.energy) responseText
         match items with
         | Ok x -> return Ok (x)
         | Error parseError -> return Error parseError
@@ -147,11 +145,9 @@ module Api =
   let loadLastRows =
     async {
       let! (status, responseText) = Http.get "http://localhost:8085/lastenergies?count=10"
-
       match status with
       | 200 ->
-        let items = Decode.fromString (Decode.list Decode.Energy) responseText
-
+        let items = Decode.fromString (Decode.list Decode.energy) responseText
         match items with
         | Ok x -> return Ok (x)
         | Error parseError -> return Error parseError
@@ -160,13 +156,11 @@ module Api =
         return Error responseText
     }
 
-  let saveItem (item : EnergyDbType) =
+  let saveItem (item : Energy) =
     async {
-
-      let json = Encode.Energy item
+      let json = Encode.energy item
       let body = Encode.toString 2 json
       let! (status, responseText) = Http.post "http://localhost:8085/energies" body
-
       match status with
       | 200 -> return Ok item
       | 201 -> return Ok item
@@ -174,8 +168,7 @@ module Api =
     }
 
 
-
-module Render =
+module private Render =
 
   type Inputs = { 
     date: ReactElement
@@ -185,7 +178,7 @@ module Render =
     info: ReactElement
   }
 
-  let GridRow (item : EnergyDbType) =
+  let gridRow (item : Energy) =
     let kind = Constants.EnergyKindToText.[item.Kind]
     let created = (Utils.unixTimeToLocalDateTime item.Created).ToString("dd.MM.yyyy HH:mm")
     let amount = $"{item.Amount} {Constants.EnergyKindToUnit.[item.Kind]}"
@@ -197,7 +190,7 @@ module Render =
       Html.div [ prop.classes [ "cell" ]; prop.children [ Html.text item.Info] ]
     ]
 
-  let Grid (renderRows : unit -> ReactElement list) =
+  let grid (renderRows : unit -> ReactElement list) =
     Html.div [
       prop.classes [ "columns" ]
       prop.children [
@@ -218,7 +211,7 @@ module Render =
       ]
     ]
 
-  let Edit (inputs: Inputs) =
+  let edit (inputs: Inputs) =
     Html.div [ 
       prop.classes [ "column" ]
       prop.children [
@@ -314,7 +307,7 @@ module Edit =
   | Amount of string
   | Info of string
 
-  let getForDB (state: State): EnergyDbType = 
+  let stateToEnergy (state: State): Energy = 
     {
       ID = state.ID
       Kind = state.Kind
@@ -351,7 +344,6 @@ module Edit =
           | None -> state
         state, Cmd.none
       | (false, _) -> state, Cmd.none
-
     | Msg.Amount x ->
       let state = 
         match System.Int32.TryParse x with
@@ -362,7 +354,7 @@ module Edit =
       let state = { state with Info = x }
       state, Cmd.none
 
-  let renderInputs (state : State) (dispatch : Msg -> unit) : Render.Inputs =
+  let private renderInputs (state : State) (dispatch : Msg -> unit) : Render.Inputs =
 
     let kindSelectOptions = 
       Constants.EnergyKindToText
@@ -405,23 +397,23 @@ module Edit =
 
   let render (state : State) (dispatch : Msg -> unit) =
     let inputs = renderInputs state dispatch
-    Render.Edit inputs
+    Render.edit inputs
 
 
 module Energy =
 
   type State =
     { 
-      LastRows : Deferred<List<EnergyDbType>>
+      LastRows : Deferred<List<Energy>>
       Edit: Edit.State
-      LastEdits: List<EnergyDbType>
+      LastEdits: List<Energy>
     }
 
   type Msg =
   | InitPage
-  | LoadLastRows of AsyncOperationEvent<Result<List<EnergyDbType>, string>>
+  | LoadLastRows of AsyncOperationEvent<Result<List<Energy>, string>>
   | Edit of Edit.Msg
-  | SaveItem of AsyncOperationEvent<Result<EnergyDbType, string>>
+  | SaveItem of AsyncOperationEvent<Result<Energy, string>>
 
   let init () : State =
     { 
@@ -451,7 +443,7 @@ module Energy =
     | Msg.SaveItem x ->
       match x with
       | Started ->
-        let asyncSave = (Api.saveItem(Edit.getForDB state.Edit))
+        let asyncSave = (Api.saveItem(Edit.stateToEnergy state.Edit))
         state, Cmd.fromAsync (Async.map (fun x -> Msg.SaveItem(Finished(x))) asyncSave )
       | Finished (Ok item) ->
         let lastedits = state.LastEdits @ [item]
@@ -466,7 +458,7 @@ module Energy =
 
   let render (state : State) (dispatch : Msg -> unit) =
     let grid =
-      Render.Grid (fun () -> List.collect Render.GridRow state.LastEdits)
+      Render.grid (fun () -> List.collect Render.gridRow state.LastEdits)
     let edit = Edit.render state.Edit ( fun x -> dispatch (Edit x) )
 
     let addButton =
