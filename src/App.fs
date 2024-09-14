@@ -10,7 +10,7 @@ type Page =
   | Home
   | Overview
   | Pricelists
-  | Editation
+  | AddNewRecords
 
 
 type State =
@@ -31,14 +31,14 @@ let init () =
 let update msg state =
   match msg with
   | WgAddNewMsg msg ->
-    let energy, cmd = WgAddNew.update msg state.WgAddNewSt
-    { state with WgAddNewSt = energy }, Cmd.map Msg.WgAddNewMsg cmd
+    let st, cmd = WgAddNew.update msg state.WgAddNewSt
+    { state with WgAddNewSt = st }, Cmd.map Msg.WgAddNewMsg cmd
   | SwitchPage page ->
-    let newstate = { state with CurrentPage = page }
-    match newstate.CurrentPage with
-    | Page.Home -> newstate, Page.Editation |> Msg.SwitchPage |> Cmd.ofMsg
-    | Page.Editation -> newstate, WgAddNew.Msg.InitPage |> Msg.WgAddNewMsg |> Cmd.ofMsg
-    | _ -> newstate, Cmd.none
+    let st = { state with CurrentPage = page }
+    match st.CurrentPage with
+    | Page.Home -> st, Page.AddNewRecords |> Msg.SwitchPage |> Cmd.ofMsg
+    | Page.AddNewRecords -> st, WgAddNew.Msg.InitPage |> Msg.WgAddNewMsg |> Cmd.ofMsg
+    | _ -> st, Cmd.none
 
 let renderMenuNavItem (label : string) (handler : unit -> unit) =
   Html.p [
@@ -84,16 +84,16 @@ let renderApp (state : State) (dispatch : Msg -> unit) (renderPage : State -> (M
     ]
   ]
 
-let renderEditation (state : State) (dispatch : Msg -> unit) =
+let renderAddNewRecordsPage (state : State) (dispatch : Msg -> unit) =
   WgAddNew.render state.WgAddNewSt (Msg.WgAddNewMsg >> dispatch)
 
-let renderHome (state : State) (dispatch : Msg -> unit) =
-  renderEditation state dispatch
+let renderHomePage (state : State) (dispatch : Msg -> unit) =
+  renderAddNewRecordsPage state dispatch
 
 let render (state : State) (dispatch : Msg -> unit) =
   match state.CurrentPage with
-  | Page.Home -> renderApp state dispatch renderHome
+  | Page.Home -> renderApp state dispatch renderHomePage
   | Page.Overview -> Html.div "Overview - to be done"
   | Page.Pricelists -> Html.div "Pricelists - to be done"
-  | Page.Editation -> renderApp state dispatch renderEditation
+  | Page.AddNewRecords -> renderApp state dispatch renderAddNewRecordsPage
 
