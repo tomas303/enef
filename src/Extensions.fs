@@ -22,8 +22,8 @@ type Deferred<'t> =
   | Resolved of 't
 
 type AsyncOperationEvent<'t> =
-  | Started
-  | Finished of 't
+  | StartIt
+  | FinishIt of 't
 
 module Async =
   let map<'t, 'u> (mapping : 't -> 'u) (input : Async<'t>) : Async<'u> =

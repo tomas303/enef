@@ -425,16 +425,16 @@ module Energy =
   let update msg state =
     match msg with
     | Msg.InitPage ->
-      state, Cmd.ofMsg (Msg.LoadLastRows Started)
+      state, Cmd.ofMsg (Msg.LoadLastRows StartIt)
     | Msg.LoadLastRows x ->
       match x with
-      | Started ->
+      | StartIt ->
         let state = { state with LastRows = InProgress }
-        state, Cmd.fromAsync (Async.map (fun x -> Msg.LoadLastRows(Finished(x))) Api.loadLastRows)
-      | Finished (Ok items) ->
+        state, Cmd.fromAsync (Async.map (fun x -> Msg.LoadLastRows(FinishIt(x))) Api.loadLastRows)
+      | FinishIt (Ok items) ->
         let state = { state with LastRows = Resolved (items); LastEdits=items }
         state, Cmd.none
-      | Finished (Error text) ->
+      | FinishIt (Error text) ->
         let state = { state with LastRows = Resolved ([]) }
         state, Cmd.none
     | Edit x ->
@@ -442,10 +442,10 @@ module Energy =
       { state with Edit = newstate}, newcmd
     | Msg.SaveItem x ->
       match x with
-      | Started ->
+      | StartIt ->
         let asyncSave = (Api.saveItem(Edit.stateToEnergy state.Edit))
-        state, Cmd.fromAsync (Async.map (fun x -> Msg.SaveItem(Finished(x))) asyncSave )
-      | Finished (Ok item) ->
+        state, Cmd.fromAsync (Async.map (fun x -> Msg.SaveItem(FinishIt(x))) asyncSave )
+      | FinishIt (Ok item) ->
         let lastedits = state.LastEdits @ [item]
         let lastedits2 = 
           if List.length(lastedits) > 10 then
@@ -453,7 +453,7 @@ module Energy =
           else
             lastedits
         {state with LastEdits = lastedits2}, Cmd.none
-      | Finished (Error text) ->
+      | FinishIt (Error text) ->
         state, Cmd.none
 
   let render (state : State) (dispatch : Msg -> unit) =
@@ -471,7 +471,7 @@ module Energy =
               Html.button [
                 prop.classes [ "button"; "is-primary"; "is-pulled-right" ]
                 prop.text "Add"
-                prop.onClick ( fun _ -> dispatch (SaveItem Started) )
+                prop.onClick ( fun _ -> dispatch (SaveItem StartIt) )
               ]
             ]
           ]
