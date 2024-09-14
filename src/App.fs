@@ -14,33 +14,31 @@ type Page =
 
 
 type State =
-  { CurrentPage : Page
-    Energy : Energy.State }
+  { WgAddNewSt : WgAddNew.State 
+    CurrentPage : Page }
 
 type Msg =
+  | WgAddNewMsg of WgAddNew.Msg
   | SwitchPage of Page
-  | EnergyMsg of Energy.Msg
 
 let init () =
   let state =
-    { CurrentPage = Page.Home
-      Energy = Energy.init () }
-
+    { WgAddNewSt = WgAddNew.init ()
+      CurrentPage = Page.Home }
   let cmd = Cmd.ofMsg (Msg.SwitchPage state.CurrentPage)
   state, cmd
 
 let update msg state =
   match msg with
+  | WgAddNewMsg msg ->
+    let energy, cmd = WgAddNew.update msg state.WgAddNewSt
+    { state with WgAddNewSt = energy }, Cmd.map Msg.WgAddNewMsg cmd
   | SwitchPage page ->
     let newstate = { state with CurrentPage = page }
-
     match newstate.CurrentPage with
     | Page.Home -> newstate, Page.Editation |> Msg.SwitchPage |> Cmd.ofMsg
-    | Page.Editation -> newstate, Energy.Msg.InitPage |> Msg.EnergyMsg |> Cmd.ofMsg
+    | Page.Editation -> newstate, WgAddNew.Msg.InitPage |> Msg.WgAddNewMsg |> Cmd.ofMsg
     | _ -> newstate, Cmd.none
-  | EnergyMsg msg ->
-    let energy, cmd = Energy.update msg state.Energy
-    { state with Energy = energy }, Cmd.map Msg.EnergyMsg cmd
 
 let renderMenuNavItem (label : string) (handler : unit -> unit) =
   Html.p [
@@ -87,7 +85,7 @@ let renderApp (state : State) (dispatch : Msg -> unit) (renderPage : State -> (M
   ]
 
 let renderEditation (state : State) (dispatch : Msg -> unit) =
-  Energy.render state.Energy (Msg.EnergyMsg >> dispatch)
+  WgAddNew.render state.WgAddNewSt (Msg.WgAddNewMsg >> dispatch)
 
 let renderHome (state : State) (dispatch : Msg -> unit) =
   renderEditation state dispatch
