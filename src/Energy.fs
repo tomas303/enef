@@ -290,7 +290,7 @@ module private Render =
     ]
 
 
-module Edit =
+module WgEdit =
 
   type State = { 
     ID : string
@@ -405,25 +405,28 @@ module Energy =
   type State =
     { 
       LastRows : Deferred<List<Energy>>
-      Edit: Edit.State
+      WgEdit: WgEdit.State
       LastEdits: List<Energy>
     }
 
   type Msg =
   | InitPage
   | LoadLastRows of AsyncOperationEvent<Result<List<Energy>, string>>
-  | Edit of Edit.Msg
+  | WgEdit of WgEdit.Msg
   | SaveItem of AsyncOperationEvent<Result<Energy, string>>
 
   let init () : State =
     { 
       LastRows = HasNotStartedYet
-      Edit = Edit.empty()
+      WgEdit = WgEdit.empty()
       LastEdits = []
     }
 
   let update msg state =
     match msg with
+    | WgEdit x ->
+      let newstate, newcmd = WgEdit.update x state.WgEdit
+      { state with WgEdit = newstate}, newcmd
     | Msg.InitPage ->
       state, Cmd.ofMsg (Msg.LoadLastRows StartIt)
     | Msg.LoadLastRows x ->
@@ -437,13 +440,10 @@ module Energy =
       | FinishIt (Error text) ->
         let state = { state with LastRows = Resolved ([]) }
         state, Cmd.none
-    | Edit x ->
-      let newstate, newcmd = Edit.update x state.Edit
-      { state with Edit = newstate}, newcmd
     | Msg.SaveItem x ->
       match x with
       | StartIt ->
-        let asyncSave = (Api.saveItem(Edit.stateToEnergy state.Edit))
+        let asyncSave = (Api.saveItem(WgEdit.stateToEnergy state.WgEdit))
         state, Cmd.fromAsync (Async.map (fun x -> Msg.SaveItem(FinishIt(x))) asyncSave )
       | FinishIt (Ok item) ->
         let lastedits = state.LastEdits @ [item]
@@ -459,7 +459,7 @@ module Energy =
   let render (state : State) (dispatch : Msg -> unit) =
     let grid =
       Render.grid (fun () -> List.collect Render.gridRow state.LastEdits)
-    let edit = Edit.render state.Edit ( fun x -> dispatch (Edit x) )
+    let edit = WgEdit.render state.WgEdit ( fun x -> dispatch (WgEdit x) )
 
     let addButton =
       Html.div [
