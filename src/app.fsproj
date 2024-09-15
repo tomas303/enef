@@ -5,7 +5,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Extensions.fs" />
-    <Compile Include="Energy.fs" />
+    <Compile Include="energies/Lib.fs" />
+    <Compile Include="energies/WgEdit.fs" />
+    <Compile Include="energies/WgAddNew.fs" />
     <Compile Include="App.fs" />
     <Compile Include="Main.fs" />
   </ItemGroup>

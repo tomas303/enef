@@ -3,7 +3,6 @@ module App
 
 open Elmish
 open Feliz
-open Energies
 
 [<RequireQualifiedAccess>]
 type Page =
@@ -14,16 +13,16 @@ type Page =
 
 
 type State =
-  { WgAddNewSt : WgAddNew.State 
+  { WgAddNewSt : Energies.WgAddNew.State 
     CurrentPage : Page }
 
 type Msg =
-  | WgAddNewMsg of WgAddNew.Msg
+  | WgAddNewMsg of Energies.WgAddNew.Msg
   | SwitchPage of Page
 
 let init () =
   let state =
-    { WgAddNewSt = WgAddNew.init ()
+    { WgAddNewSt = Energies.WgAddNew.init ()
       CurrentPage = Page.Home }
   let cmd = Cmd.ofMsg (Msg.SwitchPage state.CurrentPage)
   state, cmd
@@ -31,13 +30,13 @@ let init () =
 let update msg state =
   match msg with
   | WgAddNewMsg msg ->
-    let st, cmd = WgAddNew.update msg state.WgAddNewSt
+    let st, cmd = Energies.WgAddNew.update msg state.WgAddNewSt
     { state with WgAddNewSt = st }, Cmd.map Msg.WgAddNewMsg cmd
   | SwitchPage page ->
     let st = { state with CurrentPage = page }
     match st.CurrentPage with
     | Page.Home -> st, Page.AddNewRecords |> Msg.SwitchPage |> Cmd.ofMsg
-    | Page.AddNewRecords -> st, WgAddNew.Msg.InitPage |> Msg.WgAddNewMsg |> Cmd.ofMsg
+    | Page.AddNewRecords -> st, Energies.WgAddNew.Msg.InitPage |> Msg.WgAddNewMsg |> Cmd.ofMsg
     | _ -> st, Cmd.none
 
 let renderMenuNavItem (label : string) (handler : unit -> unit) =
@@ -85,7 +84,7 @@ let renderApp (state : State) (dispatch : Msg -> unit) (renderPage : State -> (M
   ]
 
 let renderAddNewRecordsPage (state : State) (dispatch : Msg -> unit) =
-  WgAddNew.render state.WgAddNewSt (Msg.WgAddNewMsg >> dispatch)
+  Energies.WgAddNew.render state.WgAddNewSt (Msg.WgAddNewMsg >> dispatch)
 
 let renderHomePage (state : State) (dispatch : Msg -> unit) =
   renderAddNewRecordsPage state dispatch

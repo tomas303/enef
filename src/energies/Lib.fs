@@ -21,7 +21,7 @@ type Energy =
     Created : int64 }
 
 
-module private Constants = 
+module Constants = 
   [<Literal>]
   let KWH = "kWh"
   [<Literal>]
@@ -60,7 +60,7 @@ module private Constants =
     ]
 
 
-module private Utils =
+module Utils =
 
   let unixTimeToLocalDateTime (unixTimeSeconds : int64) : DateTime =
     let dateTimeOffset = DateTimeOffset.FromUnixTimeSeconds (unixTimeSeconds)
@@ -92,7 +92,7 @@ module private Utils =
     | _ -> None
 
 
-module private Encode =
+module Encode =
 
   let energy (ene : Energy) =
     Encode.object [
@@ -104,7 +104,7 @@ module private Encode =
     ]
 
 
-module private Decode =
+module Decode =
 
   let energyKind: Decoder<EnergyKind> =
     fun path value ->
@@ -127,7 +127,7 @@ module private Decode =
     )
 
 
-module private Api =
+module Api =
   let loadItems =
     async {
       let! (status, responseText) = Http.get "http://localhost:8085/energies"
@@ -168,7 +168,7 @@ module private Api =
     }
 
 
-module private Render =
+module Render =
 
   type Inputs = { 
     date: ReactElement
@@ -288,194 +288,3 @@ module private Render =
 
       ]
     ]
-
-
-module WgEdit =
-
-  type State = { 
-    ID : string
-    Kind: EnergyKind
-    Amount : int
-    Info : string
-    Created : DateTime 
-  }
-
-  type Msg =
-  | Date of float
-  | Time of float
-  | Kind of string
-  | Amount of string
-  | Info of string
-
-  let stateToEnergy (state: State): Energy = 
-    {
-      ID = state.ID
-      Kind = state.Kind
-      Amount = state.Amount
-      Info = state.Info
-      Created = (Utils.localDateTimeToUnixTime state.Created)
-    }
-
-
-  let empty () =
-    {   ID = Guid.NewGuid().ToString()
-        Kind = EnergyKind.Gas
-        Amount = 0
-        Info = ""
-        Created = DateTime.Now
-    }
-
-  let update msg state =
-    match msg with
-    | Msg.Date x ->
-      let created = Utils.joinDateAndTime (Utils.jsTimestampToDateTime x) state.Created
-      let state = { state with Created = created }
-      state, Cmd.none
-    | Msg.Time x ->
-      let created = Utils.joinDateAndTime state.Created (Utils.jsTimestampToDateTime x)
-      let state = { state with Created = created }
-      state, Cmd.none
-    | Msg.Kind x ->
-      match System.Int32.TryParse(x) with
-      | (true, intValue) ->
-        let state = 
-          match Utils.intToEnergyKind(intValue) with
-          | Some x -> { state with Kind = x }
-          | None -> state
-        state, Cmd.none
-      | (false, _) -> state, Cmd.none
-    | Msg.Amount x ->
-      let state = 
-        match System.Int32.TryParse x with
-        | (true, amount) -> { state with Amount = amount }
-        | (false, _) -> state
-      state, Cmd.none
-    | Msg.Info x ->
-      let state = { state with Info = x }
-      state, Cmd.none
-
-  let private renderInputs (state : State) (dispatch : Msg -> unit) : Render.Inputs =
-
-    let kindSelectOptions = 
-      Constants.EnergyKindToText
-      |> Map.toList
-      |> List.map ( fun (energyKind, text) -> 
-          Html.option [ prop.text text; prop.value Constants.EnergyKindToInt.[energyKind] ] )
-
-    { 
-      date = Html.input [
-        prop.classes [ "input" ]
-        prop.type' "date"
-        prop.value (state.Created.ToString("yyyy-MM-dd"))
-        prop.onChange (Msg.Date >> dispatch)
-      ]
-      time = Html.input [
-        prop.classes [ "input" ]
-        prop.type' "time"
-        prop.value (state.Created.ToString("HH:mm"))
-        prop.onChange (Msg.Time >> dispatch)
-      ]
-      kind = Html.select [
-          prop.children kindSelectOptions
-          prop.onChange (Msg.Kind >> dispatch)
-      ]
-      amount = Html.input [
-        prop.classes [ "input" ]
-        prop.type' "text" 
-        prop.placeholder "amount"
-        prop.value (state.Amount.ToString())
-        prop.onChange (Msg.Amount >> dispatch)
-      ]
-      info = Html.input [ 
-        prop.classes [ "input" ] 
-        prop.type' "text"
-        prop.placeholder "remark"
-        prop.value (state.Info)
-        prop.onChange (Msg.Info >> dispatch)
-      ]
-    }
-
-  let render (state : State) (dispatch : Msg -> unit) =
-    let inputs = renderInputs state dispatch
-    Render.edit inputs
-
-
-module WgAddNew =
-
-  type State =
-    { 
-      WgEditSt: WgEdit.State
-      LastRows : Deferred<List<Energy>>
-      LastEdits: List<Energy>
-    }
-
-  type Msg =
-  | WgEditMsg of WgEdit.Msg
-  | InitPage
-  | LoadLastRows of AsyncOperationEvent<Result<List<Energy>, string>>
-  | SaveItem of AsyncOperationEvent<Result<Energy, string>>
-
-  let init () : State =
-    { 
-      LastRows = HasNotStartedYet
-      WgEditSt = WgEdit.empty()
-      LastEdits = []
-    }
-
-  let update msg state =
-    match msg with
-    | WgEditMsg x ->
-      let newstate, newcmd = WgEdit.update x state.WgEditSt
-      { state with WgEditSt = newstate}, newcmd
-    | Msg.InitPage ->
-      state, Cmd.ofMsg (Msg.LoadLastRows StartIt)
-    | Msg.LoadLastRows x ->
-      match x with
-      | StartIt ->
-        let state = { state with LastRows = InProgress }
-        state, Cmd.fromAsync (Async.map (fun x -> Msg.LoadLastRows(FinishIt(x))) Api.loadLastRows)
-      | FinishIt (Ok items) ->
-        let state = { state with LastRows = Resolved (items); LastEdits=items }
-        state, Cmd.none
-      | FinishIt (Error text) ->
-        let state = { state with LastRows = Resolved ([]) }
-        state, Cmd.none
-    | Msg.SaveItem x ->
-      match x with
-      | StartIt ->
-        let asyncSave = (Api.saveItem(WgEdit.stateToEnergy state.WgEditSt))
-        state, Cmd.fromAsync (Async.map (fun x -> Msg.SaveItem(FinishIt(x))) asyncSave )
-      | FinishIt (Ok item) ->
-        let lastedits = state.LastEdits @ [item]
-        let lastedits2 = 
-          if List.length(lastedits) > 10 then
-            List.skip (List.length lastedits - 10) lastedits
-          else
-            lastedits
-        {state with LastEdits = lastedits2}, Cmd.none
-      | FinishIt (Error text) ->
-        state, Cmd.none
-
-  let render (state : State) (dispatch : Msg -> unit) =
-    let grid =
-      Render.grid (fun () -> List.collect Render.gridRow state.LastEdits)
-    let edit = WgEdit.render state.WgEditSt ( fun x -> dispatch (WgEditMsg x) )
-
-    let addButton =
-      Html.div [
-        prop.classes [ "columns" ]
-        prop.children [
-          Html.div [
-            prop.classes [ "column" ]
-            prop.children [
-              Html.button [
-                prop.classes [ "button"; "is-primary"; "is-pulled-right" ]
-                prop.text "Add"
-                prop.onClick ( fun _ -> dispatch (SaveItem StartIt) )
-              ]
-            ]
-          ]
-        ]
-      ]
-
-    [ grid; edit; addButton]
