@@ -51,12 +51,11 @@ module WgAddNew =
         state, Cmd.fromAsync (Async.map (fun x -> Msg.SaveItem(FinishIt(x))) asyncSave )
       | FinishIt (Ok item) ->
         let lastedits = state.LastEdits @ [item]
-        let lastedits2 = 
-          if List.length(lastedits) > 10 then
-            List.skip (List.length lastedits - 10) lastedits
-          else
-            lastedits
-        {state with LastEdits = lastedits2}, Cmd.none
+        let lastedits = 
+          match List.length(lastedits) with
+          | x when x > 10 -> List.skip (x - 10) lastedits
+          | _ -> lastedits
+        {state with LastEdits = lastedits}, Cmd.none
       | FinishIt (Error text) ->
         state, Cmd.none
 
