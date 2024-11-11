@@ -60,8 +60,7 @@ module WgAddNew =
         state, Cmd.none
 
   let render (state : State) (dispatch : Msg -> unit) =
-    let grid =
-      Render.grid (fun () -> List.collect Render.gridRow state.LastEdits)
+    let grid = Render.grid (fun () -> List.map Render.gridRow state.LastEdits)
     let edit = WgEdit.render state.WgEditSt ( fun x -> dispatch (WgEditMsg x) )
 
     let addButton =

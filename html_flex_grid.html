@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Hello Bulma!</title>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css"
+        integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous" />
+    <style>
+
+        :root {
+            --fg-border-color: hsl(114, 91%, 39%);
+        }
+
+        .fg-grid{
+            border: 1px solid var(--fg-border-color);
+        }
+        .fg-row {
+            display: flex;
+            flex-direction: row;
+        }
+
+        .fg-cell {
+            border: 1px solid var(--fg-border-color);
+            padding: 0.5em 0.5em;
+            flex-basis: 100%;
+        }
+
+        .fg-c5 {
+            flex-basis: 5%;
+            min-width: 0;
+            white-space: nowrap;
+        }
+        .fg-c10 {
+            flex-basis: 10%;
+            min-width: 0;
+            white-space: nowrap;
+        }
+        .fg-c15 {
+            flex-basis: 15%;
+            min-width: 0;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+
+<!-- mainly this is done because of cell properties
+    with this layout one can create grid with any number of fix column
+    and one dynamic
+    flex-basis .... proportional place to get for cell
+    min-width ..... flex can go with width beyond what is allowed(so not all content is displayed), so that is 0
+    white-space: nowrap;  ... diw wont break into multiple lines
+    so is clear it si suitable for small grid when one can know before hand fix widths of columns,
+    like dates, some types etc.
+
+    if it wasnot done this way, then each row could display box at different width based on text
+
+    also note fles is group of 3 props
+    flex-grow       factor how space will grow compared to others cells
+    flex-shrink     factor how element will shring compared to others cells(when there is not enough space)
+    flex-basis      basic width(or height) to start with computation
+
+    from description is clear that grow and shring cannot be used at tha same time
+        either there is a space so flex cells grows
+        or there is not a space so flex cells shrinks
+
+-->
+
+
+<body>
+    <section>
+        <div>
+            <div>5555555555555555555555555</div>
+            <div class="fg-grid">
+                <div class="fg-row">
+                    <div class="fg-cell fg-c5">11 11 11</div>
+                    <div class="fg-cell">asahi linux test</div>
+                </div>
+                <div class="fg-row">
+                    <div class="fg-cell fg-c5">aa aa aa</div>
+                    <div class="fg-cell">poznamka opravdu opravdu  opravdu  opravdu  opravdu  opravdu  opravdu  opravdu  opravdu  opravdu  opravdu  opravdu  opravdu velka a velka a velka  a velka a velka  a velka a velka  a velka a velka  a velka a velka  a velka a velka poznamka opravdu opravdu  opravdu  opravdu  opravdu  opravdu  opravdu  opravdu  opravdu  opravdu  opravdu  opravdu  opravdu velka a velka a velka  a velka a velka  a velka a velka  a velka a velka  a velka a velka  a velka a velka </div>
+                </div>
+                <div class="fg-row">
+                    <div class="fg-cell fg-c5">xx xx xx</div>
+                    <div class="fg-cell">kuk</div>
+                </div>
+            </div>
+        <div>666666666666666666666666666666</div>
+    </section>
+
+
+</body>
+
+</html>

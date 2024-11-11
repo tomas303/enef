@@ -37,8 +37,8 @@ module Constants =
 
   let EnergyKindToText = 
     Map [
-        EnergyKind.ElektricityVT, "Electricity VT"
-        EnergyKind.ElektricityNT, "Electricity NT"
+        EnergyKind.ElektricityVT, "VT"
+        EnergyKind.ElektricityNT, "NT"
         EnergyKind.Gas, "Gas"
         EnergyKind.Water, "Water"
     ]
@@ -175,6 +175,7 @@ module Render =
     time: ReactElement
     kind: ReactElement
     amount: ReactElement
+    unit: ReactElement
     info: ReactElement
   }
 
@@ -182,109 +183,27 @@ module Render =
     let kind = Constants.EnergyKindToText.[item.Kind]
     let created = (Utils.unixTimeToLocalDateTime item.Created).ToString("dd.MM.yyyy HH:mm")
     let amount = $"{item.Amount} {Constants.EnergyKindToUnit.[item.Kind]}"
-    [
-      // Html.div [ prop.classes [ "cell" ]; prop.children [ Html.text item.ID ] ]
-      Html.div [ prop.classes [ "cell" ]; prop.children [ Html.text kind ] ]
-      Html.div [ prop.classes [ "cell" ]; prop.children [ Html.text created ] ]
-      Html.div [ prop.classes [ "cell" ]; prop.children [ Html.text amount ] ]
-      Html.div [ prop.classes [ "cell" ]; prop.children [ Html.text item.Info] ]
+    Html.div [
+      prop.classes [ "fg-row" ]
+      prop.children [
+        // Html.div [ prop.classes [ "fg-cell" ]; prop.children [ Html.text item.ID ] ]
+        Html.div [ prop.classes [ "fg-cell fg-c10" ]; prop.children [ Html.text kind ] ]
+        Html.div [ prop.classes [ "fg-cell fg-c30" ]; prop.children [ Html.text created ] ]
+        Html.div [ prop.classes [ "fg-cell fg-c15" ]; prop.children [ Html.text amount ] ]
+        Html.div [ prop.classes [ "fg-cell" ]; prop.children [ Html.text item.Info] ]
+      ]
     ]
 
   let grid (renderRows : unit -> ReactElement list) =
     Html.div [
-      prop.classes [ "columns" ]
-      prop.children [
-        Html.div [
-          prop.classes [ "column" ]
-          prop.children [
-            Html.div [
-              prop.classes ["fixed-grid"; "has-1-cols-mobile"; "has-2-cols-tablet"; "has-4-cols-desktop"]
-              prop.children [
-                Html.div [
-                  prop.classes ["grid is-gap-0"]
-                  prop.children (renderRows ())
-                ]
-              ]
-            ]
-          ]
-        ]
-      ]
+      prop.classes [ "fg-grid" ]
+      prop.children (renderRows ())
     ]
 
   let edit (inputs: Inputs) =
     Html.div [ 
-      prop.classes [ "column" ]
+      prop.classes [ "edit-box" ]
       prop.children [
-
-        Html.div [ 
-          prop.classes [ "column" ]
-          prop.style [ style.backgroundColor "red" ]
-          prop.children [
-            Html.div [ 
-              prop.classes [ "field"; "has-addons" ]
-              prop.children [
-                Html.div [
-                  prop.classes [ "control" ]
-                  prop.children [
-                    Html.div [
-                      prop.classes [ "select" ]
-                      prop.children [ inputs.kind ]
-                    ]
-                  ]
-                ]
-                Html.div [
-                  prop.classes [ "control" ]
-                  prop.children [ inputs.date ]
-                ]
-                Html.div [
-                  prop.classes [ "control" ]
-                  prop.children [ inputs.time ]
-                ]
-              ]
-            ]
-          ]
-        ]
-
-        Html.div [
-          prop.classes [ "column" ; "is-one-fifth" ]
-          prop.style [ style.backgroundColor "blue" ]
-          prop.children [
-            Html.div [
-              prop.classes [ "field has-addons" ]
-              prop.children [
-                Html.div [
-                  prop.classes [ "control is-expanded" ]
-                  prop.children [ inputs.amount ]
-                ]
-                Html.div [
-                  prop.classes [ "control" ]
-                  prop.children [
-                    Html.a [ 
-                      prop.classes [ "button is-static" ]
-                      prop.text "kWh"
-                    ]
-                  ]
-                ]
-              ]
-            ]
-          ]
-        ]
-
-        Html.div [
-          prop.classes [ "column" ]
-          prop.style [ style.backgroundColor "lime" ]
-          prop.children [
-            Html.div [ 
-              prop.classes [ "field" ]
-              prop.children [
-                Html.div [
-                  prop.classes [ "control"; "is-expanded" ]
-                  prop.children [ inputs.info ]
-                ]
-              ]
-            ]
-          ]
-        ]
-
+        inputs.kind; inputs.date; inputs.time; inputs.amount ; inputs.unit ; inputs.info
       ]
     ]

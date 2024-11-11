@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grid Layout with Space</title>
+  <style>
+    .layout-container {
+      display: grid;
+      grid-template-areas:
+        "nav"
+        "content";
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr;
+      /* min-height: 100vh; */
+      gap: 10px; /* Adds space between grid cells */
+      max-width: 1200px; /* Set a maximum width */
+      margin: 0 auto;     /* Center the grid horizontally */
+      padding: 0 20px;    /* Optional padding for small screens */      
+    }
+
+    .layout-nav {
+      grid-area: nav;
+      background-color: #f4f4f4;
+      padding: 20px;
+    }
+
+    .layout-content {
+      grid-area: content;
+      background-color: #fff;
+      padding: 20px;
+    }
+
+    .menu {
+      display: flex;
+      justify-content: left;
+      background-color: #333;
+      padding: 10px;
+    }
+
+    .menu a {
+      color: white;
+      padding: 10px 20px;
+      text-decoration: none;
+      font-family: Arial, sans-serif;
+      transition: background 0.3s ease;
+    }
+
+    .menu a:hover {
+      background-color: #555;
+    }    
+
+  </style>
+</head>
+<body>
+  <div class="layout-container">
+    <div class="layout-nav">
+      <nav class="menu">
+        <a href="/menu1">menu 1</a>
+        <a href="/menu2">menu 2</a>
+        <a href="/menu3">menu 3</a>
+      </nav>  
+    </div>
+    <div class="layout-content">Main Content Area</div>
+  </div>
+</body>
+</html>

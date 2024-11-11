@@ -40,45 +40,34 @@ let update msg state =
     | _ -> st, Cmd.none
 
 let renderMenuNavItem (label : string) (handler : unit -> unit) =
-  Html.p [
-    prop.classes [
-      "level-item"
-      "has-text-centered"
-    ]
-    prop.children [
-      Html.a [
-        prop.classes [ "link is-info" ]
-        prop.onClick (fun _ -> handler ())
-        prop.children [ Html.text label ]
-      ]
-    ]
+  Html.a [
+    prop.onClick (fun _ -> handler ())
+    prop.children [ Html.text label ]
   ]
 
 let renderMenuNav (state : State) (dispatch : Msg -> unit) =
-  Html.section [
-    prop.classes [ "section" ]
+  Html.nav [
+    prop.classes [ "menu" ]
     prop.children [
-      Html.nav [
-        prop.classes [ "level" ]
-        prop.children [
-          renderMenuNavItem "Home" (fun _ -> dispatch (Msg.SwitchPage Page.Home))
-          renderMenuNavItem "Overview" (fun _ -> dispatch (Msg.SwitchPage Page.Overview))
-          renderMenuNavItem "Pricelists" (fun _ -> dispatch (Msg.SwitchPage Page.Pricelists))
-        ]
-      ]
+      renderMenuNavItem "Home" (fun _ -> dispatch (Msg.SwitchPage Page.Home))
+      renderMenuNavItem "Overview" (fun _ -> dispatch (Msg.SwitchPage Page.Overview))
+      renderMenuNavItem "Pricelists" (fun _ -> dispatch (Msg.SwitchPage Page.Pricelists))
     ]
   ]
 
 let renderApp (state : State) (dispatch : Msg -> unit) (renderPage : State -> (Msg -> unit) -> ReactElement list) =
   Html.div [
-    renderMenuNav state dispatch
-    Html.section [
-      prop.classes [ "section" ]
-      prop.children [
-        Html.div [
-          prop.classes [ "container" ]
-          prop.children (renderPage state dispatch)
+    prop.classes [ "layout-container" ]
+    prop.children [
+      Html.div [
+        prop.classes [ "layout-nav" ]
+        prop.children [
+          renderMenuNav state dispatch
         ]
+      ]
+      Html.div [
+        prop.classes [ "layout-content" ]
+        prop.children (renderPage state dispatch)
       ]
     ]
   ]

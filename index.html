@@ -5,17 +5,129 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Fable</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css" />
   <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css"
     integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous" />
   <style>
-    .fixed-grid {
-      border: 1px solid var(--bulma-border);
+    :root {
+        --fg-border-color: hsl(114, 91%, 39%);
     }
 
-    .cell {
-      border: 1px solid var(--bulma-border);
-      padding: 0.5em 0.75em;
+    
+    
+    
+    .layout-container {
+      display: grid;
+      grid-template-areas:
+        "nav"
+        "content";
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr;
+      /* min-height: 100vh; */
+      gap: 10px; /* Adds space between grid cells */
+      max-width: 1200px; /* Set a maximum width */
+      margin: 0 auto;     /* Center the grid horizontally */
+      padding: 0 20px;    /* Optional padding for small screens */      
+    }
+
+    .layout-nav {
+      grid-area: nav;
+      background-color: #f4f4f4;
+      padding: 20px;
+    }
+
+    .layout-content {
+      grid-area: content;
+      background-color: #fff;
+      padding: 20px;
+    }
+
+
+
+
+    
+    
+    .menu {
+      display: flex;
+      justify-content: left;
+      background-color: #333;
+      padding: 10px;
+    }
+
+    .menu a {
+      color: white;
+      padding: 10px 20px;
+      text-decoration: none;
+      font-family: Arial, sans-serif;
+      transition: background 0.3s ease;
+    }
+
+    .menu a:hover {
+      background-color: #555;
+    }    
+
+
+
+
+
+    .edit-box {
+      display: flex;
+      justify-content: left;
+      flex-wrap: wrap;
+      
+    }
+    .edit-item {
+      padding: 5px 5px;
+      /* flex: 1; */
+      flex-grow: var(--flex-grow, 0); /* Default to 0 if variable is not set */
+      flex-shrink: var(--flex-shrink, 1); /* Default to 0 if variable is not set */
+      flex-basis: 0%;
+    }
+
+
+
+    .fg-grid{
+        border: 1px solid var(--fg-border-color);
+    }
+    .fg-row {
+        display: flex;
+        flex-direction: row;
+    }
+
+    .fg-cell {
+        border: 1px solid var(--fg-border-color);
+        padding: 0.5em 0.5em;
+        flex-basis: 100%;
+    }
+
+    .fg-c5 {
+        flex-basis: 5%;
+        min-width: 0;
+        white-space: nowrap;
+    }
+    .fg-c10 {
+        flex-basis: 10%;
+        min-width: 0;
+        white-space: nowrap;
+    }
+    .fg-c15 {
+        flex-basis: 15%;
+        min-width: 0;
+        white-space: nowrap;
+    }
+    .fg-c20 {
+        flex-basis: 20%;
+        min-width: 0;
+        white-space: nowrap;
+    }
+    .fg-c25 {
+        flex-basis: 25%;
+        min-width: 0;
+        white-space: nowrap;
+    }
+    .fg-c30 {
+        flex-basis: 30%;
+        min-width: 0;
+        white-space: nowrap;
     }
   </style>
 </head>

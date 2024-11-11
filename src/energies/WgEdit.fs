@@ -75,34 +75,43 @@ module WgEdit =
       Constants.EnergyKindToText
       |> Map.toList
       |> List.map ( fun (energyKind, text) -> 
-          Html.option [ prop.text text; prop.value Constants.EnergyKindToInt.[energyKind] ] )
+          Html.option [ prop.text text; prop.value Constants.EnergyKindToInt.[energyKind]; prop.selected (state.Kind = energyKind) ] )
 
     { 
       date = Html.input [
-        prop.classes [ "input" ]
+        prop.classes [ "edit-item" ]
         prop.type' "date"
         prop.value (state.Created.ToString("yyyy-MM-dd"))
         prop.onChange (Msg.Date >> dispatch)
       ]
       time = Html.input [
-        prop.classes [ "input" ]
+        prop.classes [ "edit-item" ]
         prop.type' "time"
         prop.value (state.Created.ToString("HH:mm"))
         prop.onChange (Msg.Time >> dispatch)
       ]
       kind = Html.select [
-          prop.children kindSelectOptions
-          prop.onChange (Msg.Kind >> dispatch)
+        prop.classes [ "edit-item" ]
+        prop.children kindSelectOptions
+        prop.onChange (Msg.Kind >> dispatch)
       ]
       amount = Html.input [
-        prop.classes [ "input" ]
+        prop.classes [ "edit-item" ]
+        prop.style [ style.width 50; style.textAlign.right ]
         prop.type' "text" 
         prop.placeholder "amount"
         prop.value (state.Amount.ToString())
         prop.onChange (Msg.Amount >> dispatch)
       ]
+      unit = Html.span [
+        prop.classes [ "edit-item" ]
+        prop.children [
+          Html.text Constants.EnergyKindToUnit.[state.Kind]
+        ]
+      ]
       info = Html.input [ 
-        prop.classes [ "input" ] 
+        prop.classes [ "edit-item" ] 
+        prop.style [ style.custom  ("--flex-grow", "1" ) ]
         prop.type' "text"
         prop.placeholder "remark"
         prop.value (state.Info)
