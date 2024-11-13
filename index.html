@@ -75,12 +75,19 @@
     }
     .edit-item {
       padding: 5px 5px;
-      /* flex: 1; */
-      flex-grow: var(--flex-grow, 0); /* Default to 0 if variable is not set */
-      flex-shrink: var(--flex-shrink, 1); /* Default to 0 if variable is not set */
+      color: rgb(13, 27, 180);
+      background-color: black;
+      flex-grow: var(--flex-grow, 0);
+      flex-shrink: var(--flex-shrink, 1);
       flex-basis: 0%;
     }
 
+    .edit-buttons {
+      display: flex;
+      justify-content: right;
+      flex-wrap: nowrap;
+      
+    }
 
     /* container for grid based on flex */
     .fg-grid{
@@ -109,6 +116,7 @@
         min-width: 0;
         white-space: nowrap;
     }
+
 
 
   </style>

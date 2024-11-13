@@ -65,19 +65,15 @@ module WgAddNew =
 
     let addButton =
       Html.div [
-        prop.classes [ "columns" ]
+        prop.classes [ "edit-buttons" ]
         prop.children [
-          Html.div [
-            prop.classes [ "column" ]
-            prop.children [
-              Html.button [
-                prop.classes [ "button"; "is-primary"; "is-pulled-right" ]
-                prop.text "Add"
-                prop.onClick ( fun _ -> dispatch (SaveItem StartIt) )
-              ]
-            ]
+          Html.button [
+            prop.classes [ "edit-item" ]
+            prop.style [ style.width 50 ]
+            prop.text "Add"
+            prop.onClick ( fun _ -> dispatch (SaveItem StartIt) )
           ]
         ]
       ]
 
-    [ grid; edit; addButton]
+    [ Html.p(grid); Html.p([edit]); Html.p([addButton])]
