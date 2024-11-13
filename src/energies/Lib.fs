@@ -187,10 +187,10 @@ module Render =
       prop.classes [ "fg-row" ]
       prop.children [
         // Html.div [ prop.classes [ "fg-cell" ]; prop.children [ Html.text item.ID ] ]
-        Html.div [ prop.classes [ "fg-cell fg-c10" ]; prop.children [ Html.text kind ] ]
-        Html.div [ prop.classes [ "fg-cell fg-c30" ]; prop.children [ Html.text created ] ]
-        Html.div [ prop.classes [ "fg-cell fg-c15" ]; prop.children [ Html.text amount ] ]
-        Html.div [ prop.classes [ "fg-cell" ]; prop.children [ Html.text item.Info] ]
+        Html.div [ prop.classes [ "fg-scell" ];  prop.style [ style.custom  ("--flex-basis", "10%" ) ]; prop.children [ Html.text kind ] ]
+        Html.div [ prop.classes [ "fg-scell" ]; prop.style [ style.custom  ("--flex-basis", "30%" ) ]; prop.children [ Html.text created ] ]
+        Html.div [ prop.classes [ "fg-scell" ];prop.style [ style.custom  ("--flex-basis", "15%" ) ];  prop.children [ Html.text amount ] ]
+        Html.div [ prop.classes [ "fg-ncell" ]; prop.children [ Html.text item.Info] ]
       ]
     ]
 
