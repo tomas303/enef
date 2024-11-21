@@ -9,5 +9,8 @@ export default defineConfig({
                 "**/*.fs" // Don't watch F# files
             ]
         }
+    },
+    build: {
+        outDir: '../eneb/dist', // Replace with your desired directory
     }
 })
