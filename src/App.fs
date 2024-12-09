@@ -14,15 +14,18 @@ type Page =
 
 type State =
   { WgAddNewSt : Energies.WgAddNew.State 
+    WgOverviewSt: Energies.WgList.State
     CurrentPage : Page }
 
 type Msg =
   | WgAddNewMsg of Energies.WgAddNew.Msg
+  | WgOverviewMsg of Energies.WgList.Msg
   | SwitchPage of Page
 
 let init () =
   let state =
-    { WgAddNewSt = Energies.WgAddNew.init ()
+    { WgAddNewSt = Energies.WgAddNew.init()
+      WgOverviewSt = Energies.WgList.init()
       CurrentPage = Page.Home }
   let cmd = Cmd.ofMsg (Msg.SwitchPage state.CurrentPage)
   state, cmd
@@ -32,6 +35,9 @@ let update msg state =
   | WgAddNewMsg msg ->
     let st, cmd = Energies.WgAddNew.update msg state.WgAddNewSt
     { state with WgAddNewSt = st }, Cmd.map Msg.WgAddNewMsg cmd
+  | WgOverviewMsg msg ->
+    let st, cmd = Energies.WgList.update msg state.WgOverviewSt
+    { state with WgOverviewSt = st }, Cmd.map Msg.WgOverviewMsg cmd
   | SwitchPage page ->
     let st = { state with CurrentPage = page }
     match st.CurrentPage with
@@ -75,13 +81,16 @@ let renderApp (state : State) (dispatch : Msg -> unit) (renderPage : State -> (M
 let renderAddNewRecordsPage (state : State) (dispatch : Msg -> unit) =
   Energies.WgAddNew.render state.WgAddNewSt (Msg.WgAddNewMsg >> dispatch)
 
+let renderOverview (state : State) (dispatch : Msg -> unit) =
+  Energies.WgList.render state.WgOverviewSt (Msg.WgOverviewMsg >> dispatch)
+
 let renderHomePage (state : State) (dispatch : Msg -> unit) =
   renderAddNewRecordsPage state dispatch
 
 let render (state : State) (dispatch : Msg -> unit) =
   match state.CurrentPage with
   | Page.Home -> renderApp state dispatch renderHomePage
-  | Page.Overview -> Html.div "Overview - to be done"
+  | Page.Overview -> renderApp state dispatch renderOverview
   | Page.Pricelists -> Html.div "Pricelists - to be done"
   | Page.AddNewRecords -> renderApp state dispatch renderAddNewRecordsPage
 

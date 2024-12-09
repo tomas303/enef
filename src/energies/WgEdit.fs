@@ -4,6 +4,9 @@ open System
 open Feliz
 open Elmish
 
+/// <summary>
+/// widget for editing energy record
+/// </summary>
 [<RequireQualifiedAccess>]
 module WgEdit =
 

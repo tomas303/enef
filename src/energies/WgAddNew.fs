@@ -3,6 +3,10 @@ namespace Energies
 open Feliz
 open Elmish
 
+/// <summary>
+/// widget for add new energy record
+/// (keeps track of added record)
+/// </summary>
 [<RequireQualifiedAccess>]
 module WgAddNew =
 

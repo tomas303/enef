@@ -156,6 +156,34 @@ module Api =
         return Error responseText
     }
 
+  let loadPrevRows (created : int64) (limit: int) =
+    async {
+      let! (status, responseText) = Http.get $"http://localhost:8085/energies?prev={limit}&pin={created}"
+      match status with
+      | 200 ->
+        let items = Decode.fromString (Decode.list Decode.energy) responseText
+        match items with
+        | Ok x -> return Ok (x)
+        | Error parseError -> return Error parseError
+      | _ ->
+        // non-OK response goes finishes with an error
+        return Error responseText
+    }
+
+  let loadNextRows (created : int64) (limit: int) =
+    async {
+      let! (status, responseText) = Http.get $"http://localhost:8085/energies?next={limit}&pin={created}"
+      match status with
+      | 200 ->
+        let items = Decode.fromString (Decode.list Decode.energy) responseText
+        match items with
+        | Ok x -> return Ok (x)
+        | Error parseError -> return Error parseError
+      | _ ->
+        // non-OK response goes finishes with an error
+        return Error responseText
+    }
+
   let saveItem (item : Energy) =
     async {
       let json = Encode.energy item
@@ -191,6 +219,17 @@ module Render =
         Html.div [ prop.classes [ "fg-scell" ]; prop.style [ style.custom  ("--flex-basis", "30%" ) ]; prop.children [ Html.text created ] ]
         Html.div [ prop.classes [ "fg-scell" ];prop.style [ style.custom  ("--flex-basis", "15%" ) ];  prop.children [ Html.text amount ] ]
         Html.div [ prop.classes [ "fg-ncell" ]; prop.children [ Html.text item.Info] ]
+      ]
+    ]
+
+  let gridRowEmpty () =
+    Html.div [
+      prop.classes [ "fg-row" ]
+      prop.children [
+        Html.div [ prop.classes [ "fg-scell" ];  prop.style [ style.custom  ("--flex-basis", "10%" ) ]; prop.children [ Html.text " x " ] ]
+        Html.div [ prop.classes [ "fg-scell" ]; prop.style [ style.custom  ("--flex-basis", "30%" ) ]; prop.children [ Html.text " x " ] ]
+        Html.div [ prop.classes [ "fg-scell" ];prop.style [ style.custom  ("--flex-basis", "15%" ) ];  prop.children [ Html.text " x " ] ]
+        Html.div [ prop.classes [ "fg-ncell" ]; prop.children [ Html.text "" ] ]
       ]
     ]
 
