@@ -4,8 +4,11 @@ open System
 open Feliz
 open Elmish
 open Fable.SimpleHttp
+open Browser.Dom
 open Thoth.Json
 open Fable.DateFunctions
+open Fable.Core.JsInterop
+open Fable.Core
 
 type EnergyKind =
   | ElektricityVT
@@ -128,9 +131,15 @@ module Decode =
 
 
 module Api =
+  [<Emit("import.meta.env")>]
+  let env: obj = jsNative
+  let apiUrl: string = unbox (env?VITE_API_URL)
+  let debug: bool = unbox (env?VITE_DEBUG)
+  let url = if debug then apiUrl else window.location.host
+
   let loadItems =
     async {
-      let! (status, responseText) = Http.get "http://localhost:8085/energies"
+      let! (status, responseText) = Http.get $"{url}/energies"
       match status with
       | 200 ->
         let items = Decode.fromString (Decode.list Decode.energy) responseText
@@ -144,7 +153,7 @@ module Api =
 
   let loadLastRows =
     async {
-      let! (status, responseText) = Http.get "http://localhost:8085/lastenergies?count=10"
+      let! (status, responseText) = Http.get $"{url}/lastenergies?count=10"
       match status with
       | 200 ->
         let items = Decode.fromString (Decode.list Decode.energy) responseText
@@ -158,7 +167,7 @@ module Api =
 
   let loadPrevRows (created : int64) (limit: int) =
     async {
-      let! (status, responseText) = Http.get $"http://localhost:8085/energies?prev={limit}&pin={created}"
+      let! (status, responseText) = Http.get $"{url}/energies?prev={limit}&pin={created}"
       match status with
       | 200 ->
         let items = Decode.fromString (Decode.list Decode.energy) responseText
@@ -172,7 +181,7 @@ module Api =
 
   let loadNextRows (created : int64) (limit: int) =
     async {
-      let! (status, responseText) = Http.get $"http://localhost:8085/energies?next={limit}&pin={created}"
+      let! (status, responseText) = Http.get $"{url}/energies?next={limit}&pin={created}"
       match status with
       | 200 ->
         let items = Decode.fromString (Decode.list Decode.energy) responseText
@@ -188,7 +197,7 @@ module Api =
     async {
       let json = Encode.energy item
       let body = Encode.toString 2 json
-      let! (status, responseText) = Http.post "http://localhost:8085/energies" body
+      let! (status, responseText) = Http.post $"{url}/energies" body
       match status with
       | 200 -> return Ok item
       | 201 -> return Ok item
