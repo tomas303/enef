@@ -134,8 +134,13 @@ module Api =
   [<Emit("import.meta.env")>]
   let env: obj = jsNative
   let apiUrl: string = unbox (env?VITE_API_URL)
-  let debug: bool = unbox (env?VITE_DEBUG)
-  let url = if debug then apiUrl else window.location.host
+  let debug: bool =
+    match unbox (env?VITE_DEBUG) with
+    | "true" -> true
+    | _ -> false
+  let url = if debug then apiUrl else ( sprintf "%s//%s" window.location.protocol window.location.host )
+  printf "debug flag %b" debug
+  printf "api url %s" url
 
   let loadItems =
     async {
