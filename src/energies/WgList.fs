@@ -21,10 +21,16 @@ module WgList =
     | LoadNextRows of AsyncOperationEvent<Result<List<Energy>, string>>
 
     let getNextPin state = 
-        if state.DispRows.Length > 0 then state.DispRows.[state.DispRows.Length - 1].Created else 0
+        if state.DispRows.Length > 0 then 
+            let energy = state.DispRows.[state.DispRows.Length - 1]
+            (energy.Created, energy.ID)
+        else (0, "")
 
     let getPrevPin state = 
-        if state.DispRows.Length > 0 then state.DispRows.[0].Created else 0
+        if state.DispRows.Length > 0 then
+            let energy = state.DispRows.[0]
+            (energy.Created, energy.ID)
+        else (0, "")
 
     let getNextCmd pin limit =
         Cmd.fromAsync (Async.map (fun x -> Msg.LoadNextRows(FinishIt(x))) (Api.loadNextRows pin limit))
@@ -33,7 +39,7 @@ module WgList =
         Cmd.fromAsync (Async.map (fun x -> Msg.LoadPrevRows(FinishIt(x))) (Api.loadPrevRows pin limit))
 
     let init () =
-        let limit = 2
+        let limit = 15
         { 
             Rows = HasNotStartedYet
             DispRows = []
@@ -46,7 +52,7 @@ module WgList =
             match x with
             | StartIt ->
                 let state = { state with Rows = InProgress }
-                state, getNextCmd 0 state.Limit
+                state, getNextCmd (0,"") state.Limit
             | FinishIt (Ok items) ->
                 let state = 
                     if items.Length > 0

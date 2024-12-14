@@ -170,9 +170,10 @@ module Api =
         return Error responseText
     }
 
-  let loadPrevRows (created : int64) (limit: int) =
+  let loadPrevRows (mark : int64 * string) (limit: int) =
     async {
-      let! (status, responseText) = Http.get $"{url}/energies?prev={limit}&pin={created}"
+      let pin, id = mark
+      let! (status, responseText) = Http.get $"{url}/energies?prev={limit}&pin={pin}&id={id}"
       match status with
       | 200 ->
         let items = Decode.fromString (Decode.list Decode.energy) responseText
@@ -184,9 +185,10 @@ module Api =
         return Error responseText
     }
 
-  let loadNextRows (created : int64) (limit: int) =
+  let loadNextRows (mark : int64 * string) (limit: int) =
     async {
-      let! (status, responseText) = Http.get $"{url}/energies?next={limit}&pin={created}"
+      let pin, id = mark
+      let! (status, responseText) = Http.get $"{url}/energies?next={limit}&pin={pin}&id={id}"
       match status with
       | 200 ->
         let items = Decode.fromString (Decode.list Decode.energy) responseText
