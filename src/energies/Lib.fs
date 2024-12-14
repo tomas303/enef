@@ -237,13 +237,14 @@ module Render =
     ]
 
   let gridRowEmpty () =
+    let invisible = Html.div [ prop.style [ style.visibility.hidden ]; prop.children [Html.text " x "]  ]
     Html.div [
       prop.classes [ "fg-row" ]
       prop.children [
-        Html.div [ prop.classes [ "fg-scell" ];  prop.style [ style.custom  ("--flex-basis", "10%" ) ]; prop.children [ Html.text " x " ] ]
-        Html.div [ prop.classes [ "fg-scell" ]; prop.style [ style.custom  ("--flex-basis", "30%" ) ]; prop.children [ Html.text " x " ] ]
-        Html.div [ prop.classes [ "fg-scell" ];prop.style [ style.custom  ("--flex-basis", "15%" ) ];  prop.children [ Html.text " x " ] ]
-        Html.div [ prop.classes [ "fg-ncell" ]; prop.children [ Html.text "" ] ]
+        Html.div [ prop.classes [ "fg-scell" ]; prop.style [ style.custom  ("--flex-basis", "10%" ) ]; prop.children [ invisible ] ]
+        Html.div [ prop.classes [ "fg-scell" ]; prop.style [ style.custom  ("--flex-basis", "30%" ) ]; prop.children [ invisible ] ]
+        Html.div [ prop.classes [ "fg-scell" ];prop.style [ style.custom  ("--flex-basis", "15%" ) ];  prop.children [ invisible ] ]
+        Html.div [ prop.classes [ "fg-ncell" ]; prop.children [ invisible ] ]
       ]
     ]
 
