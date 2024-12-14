@@ -43,6 +43,7 @@ let update msg state =
     match st.CurrentPage with
     | Page.Home -> st, Page.AddNewRecords |> Msg.SwitchPage |> Cmd.ofMsg
     | Page.AddNewRecords -> st, Energies.WgAddNew.Msg.InitPage |> Msg.WgAddNewMsg |> Cmd.ofMsg
+    | Page.Overview -> st, Energies.WgList.Msg.LoadFirstRows StartIt |> Msg.WgOverviewMsg |> Cmd.ofMsg
     | _ -> st, Cmd.none
 
 let renderMenuNavItem (label : string) (handler : unit -> unit) =
