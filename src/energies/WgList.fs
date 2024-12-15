@@ -56,7 +56,8 @@ module WgList =
         let run dispatch =
             let handler (event: Event) = 
                 let kev = event :?> KeyboardEvent
-                if kev.key = "F2" then
+                printf "key %s was pressed" kev.key
+                if kev.key = "PageUp" || kev.key = "PageDown" then
                     kev.preventDefault()
                     dispatch (onKeydown (kev))
             document.addEventListener ("keydown", handler)
@@ -117,8 +118,10 @@ module WgList =
                 let state = { state with Rows = Resolved([]) }
                 state, Cmd.none
         | Msg.KeyDown x ->
-            printf "key %s was pressed" x.key
-            state, Cmd.none
+            match x.key with
+            | "PageUp" -> state, Cmd.ofMsg (Msg.LoadPrevRows StartIt)
+            | "PageDown" -> state, Cmd.ofMsg (Msg.LoadNextRows StartIt)
+            | _ -> state, Cmd.none
 
 
     let render (state : State) (dispatch : Msg -> unit) =
