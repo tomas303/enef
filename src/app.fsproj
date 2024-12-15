@@ -9,6 +9,7 @@
     <Compile Include="energies/WgEdit.fs" />
     <Compile Include="energies/WgAddNew.fs" />
     <Compile Include="energies/WgList.fs" />
+    <Compile Include="PgEnergies.fs" />
     <Compile Include="App.fs" />
     <Compile Include="Main.fs" />
   </ItemGroup>
