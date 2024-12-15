@@ -3,6 +3,13 @@ module App
 
 open Elmish
 open Feliz
+open Fable.Core
+open System
+
+open Fable.Core.JsInterop
+open Browser
+open Browser.Types
+open Browser.Dom
 
 [<RequireQualifiedAccess>]
 type Page =
@@ -21,6 +28,9 @@ type Msg =
   | WgAddNewMsg of Energies.WgAddNew.Msg
   | WgOverviewMsg of Energies.WgList.Msg
   | SwitchPage of Page
+  | Tick of DateTime
+  | WindowResized of int * int
+  | KeyDown of Browser.Types.KeyboardEvent
 
 let init () =
   let state =
@@ -95,3 +105,55 @@ let render (state : State) (dispatch : Msg -> unit) =
   | Page.Pricelists -> Html.div "Pricelists - to be done"
   | Page.AddNewRecords -> renderApp state dispatch renderAddNewRecordsPage
 
+let timer onTick =
+  let start dispatch =
+      let intervalId = 
+          JS.setInterval
+              (fun _ -> dispatch (onTick DateTime.Now))
+              1000
+      { new IDisposable with
+          member _.Dispose() = JS.clearInterval intervalId }
+  start
+
+// let keydown onKeydown =
+//   let start dispatch =
+//     // Browser.Document.onKeyDown
+//     // Browser.doc  document.addEventListener("keydown", fun e ->
+//     //   dispatch (onKeydown e?keyCode))   // use ? operator
+//     Document.
+//   start
+
+// let subscribe model =
+//     [
+//         // Listen to window resize events
+//         Sub.batch [
+//             // window.onresize (fun width height -> WindowResized(width, height))
+//             document.onkeydown (fun ev -> KeyPressed ev)
+//         ]
+//     ]
+
+
+let keydown onKeydown =
+  let start dispatch =
+
+    let handler (event: Event) =
+      dispatch (onKeydown (event :?> KeyboardEvent))
+
+    document.addEventListener ("keydown", handler)
+
+    { new IDisposable with
+        member _.Dispose() = document.removeEventListener ("keydown", handler) }
+  
+  // document.onkeydown <- handler
+  // document.addEventListener ("keydown", handler)
+  start
+
+
+let subscribe (state : State) =
+  Sub.batch [
+    Sub.map "WgOverview" WgOverviewMsg (Energies.WgList.subscribe state.WgOverviewSt)
+  ]
+  // [ ["kvak"], keydown KeyDown ]
+
+// let subscribe (state : State) =
+//   [ ["timer"], timer Tick ]

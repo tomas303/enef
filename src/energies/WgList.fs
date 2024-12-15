@@ -2,6 +2,11 @@ namespace Energies
 
 open Feliz
 open Elmish
+open System
+open Fable.Core.JsInterop
+open Browser
+open Browser.Types
+open Browser.Dom
 
 /// <summary>
 /// widget for list energy records, edit and delete them
@@ -19,6 +24,7 @@ module WgList =
     | LoadFirstRows of AsyncOperationEvent<Result<List<Energy>, string>>
     | LoadPrevRows of AsyncOperationEvent<Result<List<Energy>, string>>
     | LoadNextRows of AsyncOperationEvent<Result<List<Energy>, string>>
+    | KeyDown of Browser.Types.KeyboardEvent
 
     let getNextPin state = 
         if state.DispRows.Length > 0 then 
@@ -45,6 +51,21 @@ module WgList =
             DispRows = []
             Limit = limit
         }
+
+    let keydown onKeydown =
+        let run dispatch =
+            let handler (event: Event) = 
+                let kev = event :?> KeyboardEvent
+                if kev.key = "F2" then
+                    kev.preventDefault()
+                    dispatch (onKeydown (kev))
+            document.addEventListener ("keydown", handler)
+            { new IDisposable with
+                member _.Dispose() = document.removeEventListener ("keydown", handler) }
+        run
+
+    let subscribe state =
+        [ ["keydown"], keydown Msg.KeyDown ]
 
     let update msg state =
         match msg with
@@ -92,6 +113,9 @@ module WgList =
             | FinishIt (Error text) ->
                 let state = { state with Rows = Resolved([]) }
                 state, Cmd.none
+        | Msg.KeyDown x ->
+            printf "key %s was pressed" x.key
+            state, Cmd.none
 
 
     let render (state : State) (dispatch : Msg -> unit) =
