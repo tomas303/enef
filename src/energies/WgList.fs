@@ -64,8 +64,11 @@ module WgList =
                 member _.Dispose() = document.removeEventListener ("keydown", handler) }
         run
 
-    let subscribe state =
-        [ ["keydown"], keydown Msg.KeyDown ]
+    let subscribe isactive state =
+        if isactive then
+            [ ["keydown"], keydown Msg.KeyDown ]
+        else
+            []
 
     let update msg state =
         match msg with
