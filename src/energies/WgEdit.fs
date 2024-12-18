@@ -34,6 +34,8 @@ module WgEdit =
       Created = (Utils.localDateTimeToUnixTime state.Created)
     }
 
+  let newID (state: State): State = 
+    { state with ID = Guid.NewGuid().ToString() }
 
   let empty () =
     {   ID = Guid.NewGuid().ToString()

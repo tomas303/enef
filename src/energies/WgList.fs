@@ -21,9 +21,10 @@ module WgList =
     }
 
     type Msg =
-    | LoadFirstRows of AsyncOperationEvent<Result<List<Energy>, string>>
+    | LoadFirstRows
     | LoadPrevRows of AsyncOperationEvent<Result<List<Energy>, string>>
     | LoadNextRows of AsyncOperationEvent<Result<List<Energy>, string>>
+    | Refresh of Energy
     | KeyDown of Browser.Types.KeyboardEvent
 
     let getNextPin state = 
@@ -38,11 +39,17 @@ module WgList =
             (energy.Created, energy.ID)
         else (0, "")
 
-    let getNextCmd pin limit =
-        Cmd.fromAsync (Async.map (fun x -> Msg.LoadNextRows(FinishIt(x))) (Api.loadNextRows pin limit))
+    let getNextPageCmd created id limit =
+        Cmd.fromAsync (Async.map (fun x -> Msg.LoadNextRows(FinishIt(x))) (Api.loadPageNext created id limit false))
 
-    let getPrevCmd pin limit =
-        Cmd.fromAsync (Async.map (fun x -> Msg.LoadPrevRows(FinishIt(x))) (Api.loadPrevRows pin limit))
+    let getPrevPageCmd created id limit =
+        Cmd.fromAsync (Async.map (fun x -> Msg.LoadPrevRows(FinishIt(x))) (Api.loadPagePrev created id limit false))
+
+    let getNextPageIncludeCmd created id limit =
+        Cmd.fromAsync (Async.map (fun x -> Msg.LoadNextRows(FinishIt(x))) (Api.loadPageNext created id limit true))
+
+    let getPrevPageIncludeCmd created id limit =
+        Cmd.fromAsync (Async.map (fun x -> Msg.LoadPrevRows(FinishIt(x))) (Api.loadPagePrev created id limit true))
 
     let init () =
         let limit = 15
@@ -52,12 +59,18 @@ module WgList =
             Limit = limit
         }
 
+    let interceptKey key =
+        key = "PageUp" 
+        || key = "PageDown"
+        || key = "ArrowUp"
+        || key = "ArrowDown"
+
     let keydown onKeydown =
         let run dispatch =
             let handler (event: Event) = 
                 let kev = event :?> KeyboardEvent
                 printf "key %s was pressed" kev.key
-                if kev.key = "PageUp" || kev.key = "PageDown" then
+                if interceptKey kev.key then
                     kev.preventDefault()
                     dispatch (onKeydown (kev))
             document.addEventListener ("keydown", handler)
@@ -73,26 +86,15 @@ module WgList =
 
     let update msg state =
         match msg with
-        | Msg.LoadFirstRows x ->
-            match x with
-            | StartIt ->
-                let state = { state with Rows = InProgress }
-                state, getNextCmd (0,"") state.Limit
-            | FinishIt (Ok items) ->
-                let state = 
-                    if items.Length > 0
-                    then { state with Rows = Resolved(items); DispRows=items } 
-                    else { state with Rows = Resolved(items) } 
-                state, Cmd.none
-            | FinishIt (Error text) ->
-                let state = { state with Rows = Resolved([]) }
-                state, Cmd.none
+        | Msg.LoadFirstRows ->
+            let state = { state with Rows = InProgress }
+            state, getNextPageCmd 0 "" state.Limit 
         | Msg.LoadPrevRows x ->
             match x with
             | StartIt ->
-                let newpin = getPrevPin state
+                let created, id = getPrevPin state
                 let state = { state with Rows = InProgress }
-                state, getPrevCmd newpin state.Limit
+                state, getPrevPageCmd created id state.Limit
             | FinishIt (Ok items) ->
                 let state = 
                     if items.Length > 0
@@ -105,9 +107,9 @@ module WgList =
         | Msg.LoadNextRows x ->
             match x with
             | StartIt ->
-                let newpin = getNextPin state
+                let created, id = getNextPin state
                 let state = { state with Rows = InProgress }
-                state, getNextCmd newpin state.Limit
+                state, getNextPageCmd created id state.Limit
             | FinishIt (Ok items) ->
                 let state = 
                     if items.Length > 0
@@ -117,10 +119,21 @@ module WgList =
             | FinishIt (Error text) ->
                 let state = { state with Rows = Resolved([]) }
                 state, Cmd.none
+        | Msg.Refresh x ->
+            let state = { state with DispRows = [];  Rows = InProgress }
+            state, getPrevPageIncludeCmd x.Created x.ID state.Limit
         | Msg.KeyDown x ->
             match x.key with
             | "PageUp" -> state, Cmd.ofMsg (Msg.LoadPrevRows StartIt)
             | "PageDown" -> state, Cmd.ofMsg (Msg.LoadNextRows StartIt)
+            | "ArrowUp" -> //state, Cmd.ofMsg (Msg.LoadPrevRows StartIt)
+                let created, id = getNextPin state
+                let state = { state with Rows = InProgress }
+                state, getPrevPageCmd created id state.Limit
+            | "ArrowDown" -> //state, Cmd.ofMsg (Msg.LoadNextRows StartIt)
+                let created, id = getPrevPin state
+                let state = { state with Rows = InProgress }
+                state, getNextPageCmd created id state.Limit
             | _ -> state, Cmd.none
 
 

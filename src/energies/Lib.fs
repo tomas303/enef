@@ -142,6 +142,9 @@ module Api =
   printf "debug flag %b" debug
   printf "api url %s" url
 
+  let convertbool value =
+    if value then "true" else "false"
+
   let loadItems =
     async {
       let! (status, responseText) = Http.get $"{url}/energies"
@@ -170,10 +173,9 @@ module Api =
         return Error responseText
     }
 
-  let loadPrevRows (mark : int64 * string) (limit: int) =
+  let loadPagePrev (created : int64) (id: string) (limit: int) (included: bool) =
     async {
-      let pin, id = mark
-      let! (status, responseText) = Http.get $"{url}/energies?prev={limit}&pin={pin}&id={id}"
+      let! (status, responseText) = Http.get $"{url}/energies/page/prev?created={created}&id={id}&included={convertbool included}&limit={limit}"
       match status with
       | 200 ->
         let items = Decode.fromString (Decode.list Decode.energy) responseText
@@ -185,10 +187,9 @@ module Api =
         return Error responseText
     }
 
-  let loadNextRows (mark : int64 * string) (limit: int) =
+  let loadPageNext (created : int64) (id: string) (limit: int) (included: bool) =
     async {
-      let pin, id = mark
-      let! (status, responseText) = Http.get $"{url}/energies?next={limit}&pin={pin}&id={id}"
+      let! (status, responseText) = Http.get $"{url}/energies/page/next?created={created}&id={id}&included={convertbool included}&limit={limit}"
       match status with
       | 200 ->
         let items = Decode.fromString (Decode.list Decode.energy) responseText
