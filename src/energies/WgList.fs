@@ -27,13 +27,13 @@ module WgList =
     | Refresh of Energy
     | KeyDown of Browser.Types.KeyboardEvent
 
-    let getNextPin state = 
+    let getBottomCreatedId state = 
         if state.DispRows.Length > 0 then 
             let energy = state.DispRows.[state.DispRows.Length - 1]
             (energy.Created, energy.ID)
         else (0, "")
 
-    let getPrevPin state = 
+    let getTopCreatedId state = 
         if state.DispRows.Length > 0 then
             let energy = state.DispRows.[0]
             (energy.Created, energy.ID)
@@ -92,22 +92,27 @@ module WgList =
         | Msg.LoadPrevRows x ->
             match x with
             | StartIt ->
-                let created, id = getPrevPin state
+                let created, id = getTopCreatedId state
                 let state = { state with Rows = InProgress }
                 state, getPrevPageCmd created id state.Limit
             | FinishIt (Ok items) ->
-                let state = 
-                    if items.Length > 0
-                    then { state with Rows = Resolved(items); DispRows= List.truncate state.Limit (List.append items state.DispRows) } 
-                    else { state with Rows = Resolved(items) } 
-                state, Cmd.none
+                match items.Length with
+                | len when len = state.Limit ->
+                    { state with Rows = Resolved(items); DispRows=items }, Cmd.none
+                | len when len > 0 ->
+                    let last = (items.[len-1].Created, items.[len-1].ID)
+                    let addItems = List.filter (fun x -> (x.Created, x.ID) > last ) state.DispRows
+                    let newDispRows= List.truncate state.Limit (List.append items addItems)
+                    { state with Rows = Resolved(items); DispRows=newDispRows }, Cmd.none
+                | _ ->
+                    state, Cmd.none
             | FinishIt (Error text) ->
                 let state = { state with Rows = Resolved([]) }
                 state, Cmd.none
         | Msg.LoadNextRows x ->
             match x with
             | StartIt ->
-                let created, id = getNextPin state
+                let created, id = getBottomCreatedId state
                 let state = { state with Rows = InProgress }
                 state, getNextPageCmd created id state.Limit
             | FinishIt (Ok items) ->
@@ -127,11 +132,13 @@ module WgList =
             | "PageUp" -> state, Cmd.ofMsg (Msg.LoadPrevRows StartIt)
             | "PageDown" -> state, Cmd.ofMsg (Msg.LoadNextRows StartIt)
             | "ArrowUp" -> //state, Cmd.ofMsg (Msg.LoadPrevRows StartIt)
-                let created, id = getNextPin state
+                let created, id = getBottomCreatedId state
                 let state = { state with Rows = InProgress }
-                state, getPrevPageCmd created id state.Limit
+                if state.DispRows.Length < state.Limit 
+                then { state with DispRows = [] }, getPrevPageIncludeCmd created id (state.DispRows.Length + 1)
+                else state, getPrevPageCmd created id state.Limit
             | "ArrowDown" -> //state, Cmd.ofMsg (Msg.LoadNextRows StartIt)
-                let created, id = getPrevPin state
+                let created, id = getTopCreatedId state
                 let state = { state with Rows = InProgress }
                 state, getNextPageCmd created id state.Limit
             | _ -> state, Cmd.none
