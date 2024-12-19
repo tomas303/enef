@@ -100,13 +100,15 @@ module WgEdit =
         prop.children kindSelectOptions
         prop.onChange (Msg.Kind >> dispatch)
       ]
-      amount = Html.input [
+      amount = Html.span [
         prop.classes [ "edit-item" ]
-        prop.style [ style.width 50; style.textAlign.right ]
-        prop.type' "text" 
-        prop.placeholder "amount"
+        prop.style [ style.minWidth 50; style.textAlign.right ]
+        prop.contentEditable true
         prop.value (state.Amount.ToString())
-        prop.onChange (Msg.Amount >> dispatch)
+        prop.onInput (fun ev ->
+            let inputElement = ev.target :?> Browser.Types.HTMLElement
+            dispatch (Msg.Amount inputElement.innerText)
+        )
       ]
       unit = Html.span [
         prop.classes [ "edit-item" ]
@@ -114,13 +116,15 @@ module WgEdit =
           Html.text Constants.EnergyKindToUnit.[state.Kind]
         ]
       ]
-      info = Html.input [ 
+      info = Html.span [ 
         prop.classes [ "edit-item" ] 
         prop.style [ style.custom  ("--flex-grow", "1" ) ]
-        prop.type' "text"
-        prop.placeholder "remark"
+        prop.contentEditable true
         prop.value (state.Info)
-        prop.onChange (Msg.Info >> dispatch)
+        prop.onInput (fun ev ->
+            let inputElement = ev.target :?> Browser.Types.HTMLElement
+            dispatch (Msg.Info inputElement.innerText)
+        )
       ]
     }
 

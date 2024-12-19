@@ -66,6 +66,10 @@
 
 
 
+    [contenteditable]:focus {
+      background-color: #f9f9f9;
+      outline: none; /* Remove the default outline */
+    }
 
     .edit-box {
       display: flex;
@@ -75,7 +79,7 @@
     }
     .edit-item {
       padding: 5px 5px;
-      color: rgb(13, 27, 180);
+      color: rgb(180, 169, 13);
       background-color: black;
       flex-grow: var(--flex-grow, 0);
       flex-shrink: var(--flex-shrink, 1);
