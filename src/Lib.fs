@@ -1,4 +1,4 @@
-namespace Energies
+module Lib
 
 open System
 open Feliz
@@ -44,6 +44,14 @@ module Constants =
         EnergyKind.ElektricityNT, "NT"
         EnergyKind.Gas, "Gas"
         EnergyKind.Water, "Water"
+    ]
+
+  let TextToEnergyKind = 
+    Map [
+        "VT", EnergyKind.ElektricityVT
+        "NT", EnergyKind.ElektricityNT
+        "Gas", EnergyKind.Gas
+        "Water", EnergyKind.Water
     ]
 
   let EnergyKindToInt = 
@@ -94,7 +102,17 @@ module Utils =
     | x when (Map.containsKey value Constants.IntToEnergyKind) -> Some(Constants.IntToEnergyKind.[x])
     | _ -> None
 
+  let newID () = System.Guid.NewGuid().ToString()
 
+  let newEnergy () = 
+    {
+      ID = newID ()
+      Kind = EnergyKind.ElektricityNT
+      Amount = 0
+      Info = ""
+      Created = localDateTimeToUnixTime System.DateTime.Now
+    }
+  
 module Encode =
 
   let energy (ene : Energy) =

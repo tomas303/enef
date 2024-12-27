@@ -14,8 +14,9 @@
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",
-    "date-fns": "^3.6.0",
+    "date-fns": "^2.30.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "use-sync-external-store": "^1.4.0"
   }
 }

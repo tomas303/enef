@@ -5,10 +5,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Extensions.fs" />
-    <Compile Include="energies/Lib.fs" />
-    <Compile Include="energies/WgEdit.fs" />
-    <Compile Include="energies/WgAddNew.fs" />
-    <Compile Include="energies/WgList.fs" />
+    <Compile Include="Lib.fs" />
+    <Compile Include="WgEdit.fs" />
+    <Compile Include="WgList.fs" />
     <Compile Include="PgEnergies.fs" />
     <Compile Include="App.fs" />
     <Compile Include="Main.fs" />
@@ -20,6 +19,9 @@
     <PackageReference Include="Fable.Elmish.React" Version="4.0.0" />
     <PackageReference Include="Fable.SimpleHttp" Version="3.6.0" />
     <PackageReference Include="Feliz" Version="2.9.0" />
+    <PackageReference Include="Feliz.UseDeferred" Version="2.0.0" />
+    <PackageReference Include="Feliz.UseElmish" Version="2.5.0" />
+    <PackageReference Include="Feliz.UseListener" Version="0.6.3" />
     <PackageReference Include="Thoth.Json" Version="10.4.0" />
   </ItemGroup>
 </Project>

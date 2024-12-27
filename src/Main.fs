@@ -1,10 +1,7 @@
 ﻿module Main
 
-open Elmish
-open Elmish.React
+open Feliz
+open Browser.Dom
 
-
-Program.mkProgram App.init App.update App.render
-|> Program.withReactSynchronous "root"
-|> Program.withSubscription App.subscribe
-|> Program.run
+let root = ReactDOM.createRoot(document.getElementById "root")
+root.render(App.App())
