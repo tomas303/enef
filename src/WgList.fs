@@ -9,25 +9,28 @@ type WgListHeader = {
 }
 
 [<ReactComponent>]
-let WgListCell (value: string) (flexBasis: int) =
+let WgListCell (key:string) (value: string) (flexBasis: int) =
     Html.div [ 
+        prop.key key
         prop.classes [ "fg-scell" ]
         prop.style [ style.custom ("--flex-basis", $"{flexBasis}%%") ]
         prop.children [ Html.text value ] 
     ]
 
 [<ReactComponent>]
-let WgListCellInvisible (flexBasis: int) =
+let WgListCellInvisible (key:string) (flexBasis: int) =
     let invisible = Html.div [ prop.style [ style.visibility.hidden ]; prop.children [Html.text " x "]  ]
-    Html.div [ 
+    Html.div [
+        prop.key key
         prop.classes [ "fg-scell" ]
         prop.style [ style.custom ("--flex-basis", $"{flexBasis}%%") ]
         prop.children [ invisible ] 
     ]
 
 [<ReactComponent>]
-let WgListRow (cells: ReactElement list) =
+let WgListRow (key:string) (cells: ReactElement list) =
     Html.div [
+        prop.key key
         prop.classes [ "fg-row" ]
         prop.children cells
     ]
@@ -71,20 +74,22 @@ let WgList headers rows loadingInProgress rowCount onPrevPage onNextPage onPrevR
 
 
     let rows = rows |> List.map(
-        fun row -> 
-            let cells =  headers |> List.map2 (fun r h -> WgListCell r h.FlexBasis) row
-            WgListRow cells
+        fun (key,row) -> 
+            let cells =  headers |> List.map2 (fun r h -> WgListCell h.Label r h.FlexBasis) row
+            WgListRow key cells
         )
 
     let invrows = 
-        [ for _ in 1..rowCount - rows.Length -> (
-                let cells =  headers |> List.map (fun h -> WgListCellInvisible h.FlexBasis)
-                WgListRow cells
+        [ for i in 1..rowCount - rows.Length -> (
+                let cells =  headers |> List.map (fun h -> WgListCellInvisible h.Label h.FlexBasis)
+                WgListRow ("invisible_" + i.ToString()) cells
             )
         ]
     let rows = rows @ invrows
 
     Html.div [
-        Html.div (WgListGrid rows)
+        WgListGrid rows
         Html.div [prev; next; add]
     ]
+    
+

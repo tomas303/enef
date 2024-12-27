@@ -158,7 +158,7 @@ let PgEnergies() =
         )), [|  |])
     
 
-    let dataRow (item : Energy) = [ 
+    let dataRow (item : Energy) = item.ID, [ 
             Constants.EnergyKindToText.[item.Kind]
             (Utils.unixTimeToLocalDateTime item.Created).ToString("dd.MM.yyyy HH:mm")
             $"{item.Amount} {Constants.EnergyKindToUnit.[item.Kind]}"
