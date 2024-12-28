@@ -48,33 +48,40 @@ let WgList (props:{|
         Rows: (string * string list) list
         LoadingInProgress: bool
         RowCount: int
-        OnPrevPage: unit -> unit
-        OnNextPage: unit -> unit
-        OnPrevRow: unit -> unit
-        OnNextRow: unit -> unit
+        Cursor: int
+        OnPageUp: unit -> unit
+        OnPageDown: unit -> unit
+        OnRowUp: unit -> unit
+        OnRowDown: unit -> unit
         OnAdd: unit -> unit
     |}) =
+
+
+    let cursor active = 
+        if active
+        then WgListCell "cursor" ">" 5
+        else WgListCell "cursor" " " 5
 
     React.useListener.onKeyDown(fun ev ->
         match props.LoadingInProgress with
         | false ->
             match ev.key with
-            | "PageUp" -> props.OnPrevPage(); ev.preventDefault()
-            | "PageDown" -> props.OnNextPage(); ev.preventDefault()
-            | "ArrowUp" -> props.OnPrevRow(); ev.preventDefault()
-            | "ArrowDown" -> props.OnNextRow(); ev.preventDefault()
+            | "PageUp" -> props.OnPageUp(); ev.preventDefault()
+            | "PageDown" -> props.OnPageDown(); ev.preventDefault()
+            | "ArrowUp" -> props.OnRowUp(); ev.preventDefault()
+            | "ArrowDown" -> props.OnRowDown(); ev.preventDefault()
             | _ -> ()
         | _ -> ()
     )
 
     let prev = Html.button [
         prop.text "Prev"
-        prop.onClick (fun _ -> props.OnPrevPage())
+        prop.onClick (fun _ -> props.OnPageUp())
         prop.disabled props.LoadingInProgress
     ]
     let next = Html.button [
         prop.text "Next"
-        prop.onClick (fun _ -> props.OnNextPage())
+        prop.onClick (fun _ -> props.OnPageDown())
         prop.disabled props.LoadingInProgress
     ]
     let add = Html.button [
@@ -82,20 +89,21 @@ let WgList (props:{|
         prop.onClick (fun _ -> props.OnAdd())
     ]
 
-    let rows = props.Rows |> List.map (fun (key, row) -> 
-        let cells = props.Headers |> List.map2 (fun r h -> WgListCell h.Label r h.FlexBasis) row
-        WgListRow key cells
+    let rows = props.Rows |> List.mapi (fun idx (key, row) -> 
+        let cells = List.map2 (fun h r -> WgListCell h.Label r h.FlexBasis) props.Headers row
+        WgListRow key ([ cursor(props.Cursor = idx) ] @ cells)
     )
 
     let invrows = 
         [ for i in 1..props.RowCount - rows.Length -> 
             let cells = props.Headers |> List.map (fun h -> WgListCellInvisible h.Label h.FlexBasis)
-            WgListRow ("invisible_" + i.ToString()) cells
+            WgListRow ("invisible_" + i.ToString()) ([ cursor(false) ] @ cells)
         ]
 
     let allRows = rows @ invrows
 
-    let buttons = React.useMemo(fun() -> Html.div [ prev; next; add ])
+    let buttons = Html.div [ prev; next; add ]
+    
     Html.div [
         WgListGrid allRows
         buttons
