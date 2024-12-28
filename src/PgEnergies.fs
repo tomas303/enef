@@ -138,23 +138,21 @@ let Energies() =
                             setCurrentItem energy
                             handleRefresh energy
                         | Error _ -> ()
-        
-
             )
         )
     
     let handleCancel () =
         setEditState(EditState.Browsing)
 
-    React.useEffect((fun () -> (
-        let call =
-            async {
-                let! result = Api.loadPageNext 0 "" limit false
-                rowsChanged false (Deferred.Resolved result)
-            }
-        Async.StartImmediate call
-        )), [|  |])
-    
+    let error x = 
+        match x with
+        | Deferred.HasNotStartedYet -> Html.none
+        | Deferred.InProgress -> Html.none
+        | Deferred.Failed error -> Html.text error.Message
+        | Deferred.Resolved content ->
+            match content with
+            | Ok _ -> Html.none
+            | Error (text: string) -> Html.text text
 
     let dataRow (item : Energy) = item.ID, [ 
             Constants.EnergyKindToText.[item.Kind]
@@ -163,6 +161,19 @@ let Energies() =
             item.Info 
         ]
 
+    let firsLoad() =
+        React.useEffect((fun () -> (
+            let call =
+                async {
+                    let! result = Api.loadPageNext 0 "" limit false
+                    rowsChanged false (Deferred.Resolved result)
+                }
+            Async.StartImmediate call
+            )), [|  |])
+
+
+    firsLoad()
+    
     let headers = [
             { Label = "kind" ; FlexBasis = 10 }
             { Label = "created" ; FlexBasis = 40 }
@@ -183,25 +194,6 @@ let Energies() =
             OnNextRow = handleNextRow
             OnAdd = handleAdd
         |}
-
-    let error x = 
-        match x with
-        | Deferred.HasNotStartedYet -> Html.none
-        | Deferred.InProgress -> Html.none
-        | Deferred.Failed error -> Html.text error.Message
-        | Deferred.Resolved content ->
-            match content with
-            | Ok _ -> Html.none
-            | Error (text: string) -> Html.text text
-
-    match rows with
-    | Deferred.HasNotStartedYet -> System.Console.WriteLine "HasNotStartedYet"
-    | Deferred.InProgress -> System.Console.WriteLine "InProgress"
-    | Deferred.Failed error -> System.Console.WriteLine $"Failed {error}"
-    | Deferred.Resolved content ->
-        match content with
-        | Ok _ -> System.Console.WriteLine "Resolved OK"
-        | Error (text: string) -> System.Console.WriteLine $"Resolved Error {text}"
 
     Html.div [
         error rows
