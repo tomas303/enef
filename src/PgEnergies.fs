@@ -167,16 +167,27 @@ let PgEnergies() =
 
     let headers = [
             { Label = "kind" ; FlexBasis = 10 }
-            { Label = "created" ; FlexBasis = 30 }
+            { Label = "created" ; FlexBasis = 40 }
             { Label = "amount" ; FlexBasis = 15 }
             { Label = "info" ; FlexBasis = 100 }
         ]
 
     let rows = List.map dataRow displayedRows
 
+    let props = {|
+            Headers = headers
+            Rows = rows
+            LoadingInProgress = loadingInProgress
+            RowCount = limit
+            OnPrevPage = handlePrevPage
+            OnNextPage = handleNextPage
+            OnPrevRow = handlePrevRow
+            OnNextRow = handleNextRow
+            OnAdd = handleAdd
+        |}
 
     Html.div [
-        WgList headers rows loadingInProgress limit handlePrevPage handleNextPage handlePrevRow handleNextRow handleAdd
+        WgList props
         match saveState with
         | Deferred.HasNotStartedYet -> ()
         | Deferred.InProgress ->  Html.text "saving ing progress"
