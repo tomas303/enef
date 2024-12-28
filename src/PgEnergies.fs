@@ -52,9 +52,7 @@ type EditState =
     | Saving
 
 [<ReactComponent>]
-let PgEnergies() =
-
-
+let Energies() =
 
     let limit = 15
     let (rows, setRows) = React.useState(Deferred.HasNotStartedYet)
@@ -172,11 +170,11 @@ let PgEnergies() =
             { Label = "info" ; FlexBasis = 100 }
         ]
 
-    let rows = List.map dataRow displayedRows
+    let dataRows = List.map dataRow displayedRows
 
     let props = {|
             Headers = headers
-            Rows = rows
+            Rows = dataRows
             LoadingInProgress = loadingInProgress
             RowCount = limit
             OnPrevPage = handlePrevPage
@@ -186,16 +184,35 @@ let PgEnergies() =
             OnAdd = handleAdd
         |}
 
-    Html.div [
-        WgList props
-        match saveState with
-        | Deferred.HasNotStartedYet -> ()
-        | Deferred.InProgress ->  Html.text "saving ing progress"
-        | Deferred.Failed error ->  Html.text $"error during save {error.Message}"
+    let error x = 
+        match x with
+        | Deferred.HasNotStartedYet -> Html.none
+        | Deferred.InProgress -> Html.none
+        | Deferred.Failed error -> Html.text error.Message
         | Deferred.Resolved content ->
             match content with
-                | Ok energy -> ()
-                | Error text -> Html.text $"error during processing {text}"
+            | Ok _ -> Html.none
+            | Error (text: string) -> Html.text text
 
-        if editState = EditState.Adding then EditEnergy currentItem handleSave handleCancel else ()
+    match rows with
+    | Deferred.HasNotStartedYet -> System.Console.WriteLine "HasNotStartedYet"
+    | Deferred.InProgress -> System.Console.WriteLine "InProgress"
+    | Deferred.Failed error -> System.Console.WriteLine $"Failed {error}"
+    | Deferred.Resolved content ->
+        match content with
+        | Ok _ -> System.Console.WriteLine "Resolved OK"
+        | Error (text: string) -> System.Console.WriteLine $"Resolved Error {text}"
+
+    Html.div [
+        error rows
+        error saveState
+        WgList props
+        if editState = EditState.Adding then EditEnergy currentItem handleSave handleCancel else Html.none
     ]
+
+
+[<ReactComponent>]
+let PgEnergies() =
+    Html.div [
+            Energies()
+        ]
