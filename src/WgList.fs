@@ -54,6 +54,7 @@ let WgList (props:{|
         OnRowUp: unit -> unit
         OnRowDown: unit -> unit
         OnAdd: unit -> unit
+        OnEdit: unit -> unit
     |}) =
 
 
@@ -88,6 +89,10 @@ let WgList (props:{|
         prop.text "Add"
         prop.onClick (fun _ -> props.OnAdd())
     ]
+    let edit = Html.button [
+        prop.text "Edit"
+        prop.onClick (fun _ -> props.OnEdit())
+    ]
 
     let rows = props.Rows |> List.mapi (fun idx (key, row) -> 
         let cells = List.map2 (fun h r -> WgListCell h.Label r h.FlexBasis) props.Headers row
@@ -102,7 +107,7 @@ let WgList (props:{|
 
     let allRows = rows @ invrows
 
-    let buttons = Html.div [ prev; next; add ]
+    let buttons = Html.div [ prev; next; add; edit ]
     
     Html.div [
         WgListGrid allRows

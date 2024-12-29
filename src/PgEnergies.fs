@@ -49,6 +49,7 @@ let EditEnergy energy onSave onCancel =
 type EditState =
     | Browsing
     | Adding
+    | Editing
     | Saving
 
 [<ReactComponent>]
@@ -141,35 +142,63 @@ let Energies() =
 
     let handleRefresh =
 
+        let abovePart created id limit = 
+            async {
+                if limit > 0 then
+                    let! rows = Api.loadPagePrev created id limit false
+                    return rows
+                else
+                    return Result.Ok []
+            }
+        
+        let bellowPart created id limit = 
+            async {
+                if limit > 0 then
+                    let! rows = Api.loadPageNext created id limit false
+                    return rows
+                else
+                    return Result.Ok []
+            }
+
         let refresh energy = 
             async {
-                let! rows = Api.loadPagePrev energy.Created energy.ID limit true
-                return energy.ID, rows
+                let above = abovePart energy.Created energy.ID cursor
+                let bellow = bellowPart energy.Created energy.ID limit
+                let! results = [ above; bellow ] |> Async.Parallel
+                return energy, results.[0], results.[1]
             }
+
 
         let onSet x =
             match x with
-            | Deferred.HasNotStartedYet -> rowsChanged false Deferred.HasNotStartedYet
-            | Deferred.InProgress -> rowsChanged false Deferred.InProgress
-            | Deferred.Failed error -> rowsChanged false (Deferred.Failed error)
-            | Deferred.Resolved (id, content) -> 
-                rowsChanged false (Deferred.Resolved content)
-                match content with
-                | Ok rows ->
-                    let newCursor = List.tryFindIndex (fun x -> x.ID = id) rows
+            | Deferred.HasNotStartedYet -> setRows Deferred.HasNotStartedYet
+            | Deferred.InProgress -> setRows Deferred.InProgress
+            | Deferred.Failed error -> setRows (Deferred.Failed error)
+            | Deferred.Resolved (energy, above, bellow) -> 
+                match above, bellow with
+                | Ok above, Ok bellow ->
+                    let newDispRows = List.truncate limit (above @ [energy] @ bellow)
+                    let newCursor = List.findIndex (fun x -> x.ID = energy.ID) newDispRows
                     System.Console.WriteLine $"found newcursor {newCursor}"
-                    Option.iter (fun x -> setCursor x) newCursor
-                | _ -> ()
+                    setRows (Deferred.Resolved (Ok newDispRows))
+                    setDisplayedRows newDispRows
+                    setCursor newCursor
+                | Error above, Error bellow ->
+                    setRows (Deferred.Resolved (Error (above + bellow)))
+                | Error above, Ok _ ->
+                    setRows (Deferred.Resolved (Error above))
+                | Ok _, Error bellow ->
+                    setRows (Deferred.Resolved (Error bellow))
 
 
         React.useDeferredCallback(refresh, onSet)
 
 
     let handleAdd () =
-        if isCursorValid() 
-        then System.Console.WriteLine "is valid"
-        else System.Console.WriteLine "isnt valid"
-        if isCursorValid() then setEditState(EditState.Adding)
+        if editState = EditState.Browsing then setEditState(EditState.Adding)
+
+    let handleEdit () =
+        if editState = EditState.Browsing && isCursorValid() then setEditState(EditState.Editing)
 
     let handleSave =
         React.useDeferredCallback(Api.saveItem, 
@@ -180,11 +209,16 @@ let Energies() =
                 | Deferred.InProgress -> setEditState(EditState.Saving)
                 | Deferred.Failed error -> setEditState(EditState.Browsing)
                 | Deferred.Resolved content ->
-                    setEditState(EditState.Browsing)
                     match content with
                         | Ok energy ->
-                            handleRefresh energy
+                            match editState with
+                            | EditState.Adding ->
+                                handleRefresh energy
+                            | EditState.Editing ->
+                                handleRefresh energy
+                            | _ -> ()
                         | Error _ -> ()
+                    setEditState(EditState.Browsing)
             )
         )
     
@@ -241,17 +275,17 @@ let Energies() =
             OnRowUp = handleRowUp
             OnRowDown = handleRowDown
             OnAdd = handleAdd
+            OnEdit = handleEdit
         |}
 
-    let renderEdit = 
-        if editState = EditState.Adding then
-            if isCursorValid() then
-                // EditEnergy displayedRows.[cursor] handleSave handleCancel 
-                EditEnergy (Utils.newEnergy()) handleSave handleCancel 
-            else
-                Html.none
-        else 
-            Html.none
+    let renderEdit =
+        match isCursorValid() with
+        | true ->
+            match editState with
+            | EditState.Adding -> EditEnergy (Utils.newEnergy()) handleSave handleCancel 
+            | EditState.Editing -> EditEnergy (displayedRows.[cursor]) handleSave handleCancel 
+            | _ -> Html.none
+        | _ -> Html.none
 
     System.Console.WriteLine $"cursor: {cursor}"
     System.Console.WriteLine $"length: {displayedRows.Length}"
