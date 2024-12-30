@@ -148,6 +148,7 @@ module Decode =
 
 
 module Api =
+
     [<Emit("import.meta.env")>]
     let env: obj = jsNative
     let apiUrl: string = unbox (env?VITE_API_URL)
@@ -167,53 +168,25 @@ module Api =
         then Error($"status: {status}, network error: Unable to reach the server") 
         else Error($"status: {status}, {responseText}")
 
-    let loadItems = async {
-        let! (status, responseText) = Http.get $"{url}/energies"
+    let get url decoder = async {
+        let! (status, responseText) = Http.get url
         match status with
         | 200 ->
-            let items = Decode.fromString (Decode.list Decode.energy) responseText
-            match items with
-            | Ok x -> return Ok (x)
-            | Error parseError -> return Error parseError
+            let items = Decode.fromString decoder responseText
+            return items
         | _ ->
             return makeError status responseText
     }
 
-    let loadLastRows =async {
-        let! (status, responseText) = Http.get $"{url}/lastenergies?count=10"
-        match status with
-        | 200 ->
-            let items = Decode.fromString (Decode.list Decode.energy) responseText
-            match items with
-            | Ok x -> return Ok (x)
-            | Error parseError -> return Error parseError
-        | _ ->
-            return makeError status responseText
-    }
+    let loadItems() = get $"{url}/energies" (Decode.list Decode.energy)
 
-    let loadPagePrev (created : int64) (id: string) (limit: int) (included: bool) = async {
-        let! (status, responseText) = Http.get $"{url}/energies/page/prev?created={created}&id={id}&included={convertbool included}&limit={limit}"
-        match status with
-        | 200 ->
-            let items = Decode.fromString (Decode.list Decode.energy) responseText
-            match items with
-            | Ok x -> return Ok (x)
-            | Error parseError -> return Error parseError
-        | _ ->
-            return makeError status responseText
-    }
+    let loadLastRows() = get $"{url}/lastenergies?count=10"  (Decode.list Decode.energy)
 
-    let loadPageNext (created : int64) (id: string) (limit: int) (included: bool) = async {
-        let! (status, responseText) = Http.get $"{url}/energies/page/next?created={created}&id={id}&included={convertbool included}&limit={limit}"
-        match status with
-        | 200 ->
-            let items = Decode.fromString (Decode.list Decode.energy) responseText
-            match items with
-            | Ok x -> return Ok (x)
-            | Error parseError -> return Error parseError
-        | _ ->
-            return makeError status responseText
-    }
+    let loadPagePrev (created : int64) (id: string) (limit: int) (included: bool) =
+        get $"{url}/energies/page/prev?created={created}&id={id}&included={convertbool included}&limit={limit}" (Decode.list Decode.energy)
+
+    let loadPageNext (created : int64) (id: string) (limit: int) (included: bool) =
+        get $"{url}/energies/page/next?created={created}&id={id}&included={convertbool included}&limit={limit}" (Decode.list Decode.energy)
 
     let saveItem (item : Energy) = async {
         let json = Encode.energy item
