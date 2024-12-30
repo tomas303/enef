@@ -299,12 +299,13 @@ let Energies() =
         |}
 
     let renderEdit =
-        match isCursorValid() with
-        | true ->
-            match editState with
-            | EditState.Adding -> EditEnergy (Utils.newEnergy()) handleSave handleCancel 
-            | EditState.Editing -> EditEnergy (displayedRows.[cursor]) handleSave handleCancel 
-            | _ -> Html.none
+        match editState with
+        | EditState.Adding -> EditEnergy (Utils.newEnergy()) handleSave handleCancel 
+        | EditState.Editing -> 
+            if isCursorValid()
+            then EditEnergy (displayedRows.[cursor]) handleSave handleCancel
+            else Html.text $"invalid cursor: {cursor}"
+
         | _ -> Html.none
 
     Html.div [
