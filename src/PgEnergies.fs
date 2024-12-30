@@ -63,16 +63,24 @@ let Energies() =
     let (cursor, setCursor) = React.useState(-1)
 
 
+    // System.Console.WriteLine $"NEXT ROUND"
+    // System.Console.WriteLine $"cursor = {cursor}"
+    // // System.Console.WriteLine $"displayedRows = {displayedRows}"
+    // System.Console.WriteLine $"rows = {rows}"
+    // System.Console.WriteLine $"editState = {editState}"
+    // System.Console.WriteLine $"saveState = {saveState}"
+
+
     let isCursorValid () =
-        // System.Console.WriteLine $"MMMcursor: {cursor}"
-        // System.Console.WriteLine $"MMMlength: {displayedRows.Length}"
         cursor >= 0 && cursor <= displayedRows.Length - 1
+
 
     let getBottomCreatedId () = 
         if displayedRows.Length > 0 then 
             let energy = displayedRows.[displayedRows.Length - 1]
             (energy.Created, energy.ID)
         else (0, "")
+
 
     let getTopCreatedId () = 
         if displayedRows.Length > 0 then
@@ -82,63 +90,71 @@ let Energies() =
 
     let changeDispRows rows =
         setDisplayedRows(rows)
-        System.Console.WriteLine $"cursor from disprows: {cursor}"
         match cursor with
         | _ when rows.Length = 0 -> setCursor(-1)
         | x when x > rows.Length - 1 -> setCursor(rows.Length - 1)
         | x when x < 0 -> setCursor(0)
         | _ -> ()
 
+
     let rowsChanged upDirection rows =
         setRows rows
-        System.Console.WriteLine $"cursor from rowschanged: {cursor}"
         match rows with
-        | Deferred.Resolved content ->
-            match content with
-            | Ok items ->
-                match List.length items with
-                | len when len = limit ->
-                    changeDispRows items
-                | len when len > 0 && upDirection ->
-                    let last = (items.[len-1].Created, items.[len-1].ID)
-                    let addItems = List.filter (fun x -> (x.Created, x.ID) > last ) displayedRows
-                    let newDispRows = List.truncate limit (List.append items addItems)
-                    changeDispRows newDispRows
-                | len when len > 0 && not upDirection ->
-                    changeDispRows items
-                | _ -> ()
+        | Deferred.HasNotStartedYet -> setRows Deferred.HasNotStartedYet
+        | Deferred.InProgress -> setRows Deferred.InProgress
+        | Deferred.Failed error -> setRows (Deferred.Failed error)
+        | Deferred.Resolved (Ok content) ->
+            setRows (Deferred.Resolved (Ok content))
+            match List.length content with
+            | len when len = limit ->
+                changeDispRows content
+            | len when len > 0 && upDirection ->
+                let last = (content.[len-1].Created, content.[len-1].ID)
+                let addItems = List.filter (fun x -> (x.Created, x.ID) > last ) displayedRows
+                let newDispRows = List.truncate limit (List.append content addItems)
+                changeDispRows newDispRows
+            | len when len > 0 && not upDirection ->
+                changeDispRows content
             | _ -> ()
-        | _ -> ()
+        | Deferred.Resolved (Error text) -> 
+            setRows (Deferred.Resolved (Error text))
 
-    let scrollUp =
-        let created, id = getBottomCreatedId ()
-        let apicall () = 
-            if displayedRows.Length < limit 
-            then Api.loadPagePrev created id (displayedRows.Length + 1) true
-            else Api.loadPagePrev created id limit false
-        React.useDeferredCallback((fun () -> apicall ()), rowsChanged true)
-
-    let scrollDown =
-        let created, id = getTopCreatedId ()
-        React.useDeferredCallback((fun () -> Api.loadPageNext created id limit false), rowsChanged false)
 
     let handlePageUp =
         let created, id = getTopCreatedId ()
         React.useDeferredCallback((fun () -> Api.loadPagePrev created id limit false), rowsChanged true)
 
+
     let handlePageDown =
         let created, id = getBottomCreatedId ()
         React.useDeferredCallback((fun () -> Api.loadPageNext created id limit false), rowsChanged false)
 
-    let handleRowUp () =
-        if cursor > 0 
-        then setCursor(cursor - 1) 
-        else scrollUp()
 
-    let handleRowDown () =
+    let handleRowUp =
+
+        let scroll =
+            let created, id = getBottomCreatedId ()
+            let apicall = 
+                if displayedRows.Length < limit 
+                then Api.loadPagePrev created id (displayedRows.Length + 1) true
+                else Api.loadPagePrev created id limit false
+            React.useDeferredCallback((fun () -> apicall), rowsChanged true)
+
+        if cursor > 0 
+        then fun () -> setCursor(cursor - 1) 
+        else scroll
+
+
+    let handleRowDown =
+
+        let scroll =
+            let created, id = getTopCreatedId ()
+            React.useDeferredCallback((fun () -> Api.loadPageNext created id limit false), rowsChanged false)
+
         if cursor < displayedRows.Length - 1 
-        then setCursor(cursor + 1) 
-        else scrollDown()
+        then fun () -> setCursor(cursor + 1) 
+        else scroll
+
 
     let handleRefresh =
 
@@ -179,7 +195,6 @@ let Energies() =
                 | Ok above, Ok bellow ->
                     let newDispRows = List.truncate limit (above @ [energy] @ bellow)
                     let newCursor = List.findIndex (fun x -> x.ID = energy.ID) newDispRows
-                    System.Console.WriteLine $"found newcursor {newCursor}"
                     setRows (Deferred.Resolved (Ok newDispRows))
                     setDisplayedRows newDispRows
                     setCursor newCursor
@@ -197,8 +212,10 @@ let Energies() =
     let handleAdd () =
         if editState = EditState.Browsing then setEditState(EditState.Adding)
 
+
     let handleEdit () =
         if editState = EditState.Browsing && isCursorValid() then setEditState(EditState.Editing)
+
 
     let handleSave =
         React.useDeferredCallback(Api.saveItem, 
@@ -225,6 +242,7 @@ let Energies() =
     let handleCancel () =
         setEditState(EditState.Browsing)
 
+
     let renderError x = 
         match x with
         | Deferred.HasNotStartedYet -> Html.none
@@ -235,12 +253,14 @@ let Energies() =
             | Ok _ -> Html.none
             | Error (text: string) -> Html.text text
 
+
     let dataRow (item : Energy) = item.ID, [ 
             Constants.EnergyKindToText.[item.Kind]
             (Utils.unixTimeToLocalDateTime item.Created).ToString("dd.MM.yyyy HH:mm")
             $"{item.Amount} {Constants.EnergyKindToUnit.[item.Kind]}"
             item.Info 
         ]
+
 
     let firstLoad() =
         React.useEffect((fun () -> (
@@ -286,9 +306,6 @@ let Energies() =
             | EditState.Editing -> EditEnergy (displayedRows.[cursor]) handleSave handleCancel 
             | _ -> Html.none
         | _ -> Html.none
-
-    System.Console.WriteLine $"cursor: {cursor}"
-    System.Console.WriteLine $"length: {displayedRows.Length}"
 
     Html.div [
         renderError rows
