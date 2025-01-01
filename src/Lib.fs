@@ -24,7 +24,12 @@ type Energy = {
     Created : int64 
 }
 
-module Constants = 
+module Dbg =
+    
+    let wl (x: string) = System.Console.WriteLine x
+
+
+module Constants =
     [<Literal>]
     let KWH = "kWh"
     [<Literal>]
