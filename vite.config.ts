@@ -13,12 +13,16 @@ export default defineConfig({
         }
     },
     build: {
-        outDir: '../eneb/dist', // Replace with your desired directory
+        outDir: '../eneb/dist',
         rollupOptions: {
             output: {
-              entryFileNames: 'assets/enef.js', // For JavaScript entry files
-              chunkFileNames: '[name].js', // For code-split chunks
-              assetFileNames: '[name][extname]', // For other assets like CSS or images
+                format: 'es', // ESM format
+                entryFileNames: 'assets/enef.js',
+                chunkFileNames: 'assets/[name].js',
+                assetFileNames: '[name][extname]',
+                manualChunks: {
+                    react: ['react', 'react-dom']
+                }
             },
         },        
     }
