@@ -64,15 +64,15 @@ let WgList (props:{|
         else WgListCell "cursor" " " 5
 
     React.useListener.onKeyDown(fun ev ->
-        match props.LoadingInProgress with
-        | false ->
+        // match props.LoadingInProgress with
+        // | false ->
             match ev.key with
             | "PageUp" -> props.OnPageUp(); ev.preventDefault()
             | "PageDown" -> props.OnPageDown(); ev.preventDefault()
             | "ArrowUp" -> props.OnRowUp(); ev.preventDefault()
             | "ArrowDown" -> props.OnRowDown(); ev.preventDefault()
             | _ -> ()
-        | _ -> ()
+        // | _ -> ()
     )
 
     let prev = Html.button [
