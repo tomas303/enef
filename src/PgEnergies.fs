@@ -18,8 +18,6 @@ module GridBuffer =
         Lasterror: Option<string>
     }   
 
-    // type Fetch<'T> = 'T option -> int -> Async<List<'T>>
-
     let applyDelta data delta = 
         let newCursor = data.Cursor + delta
         if newCursor < data.Top || newCursor > data.Bottom then
@@ -200,7 +198,7 @@ let Energies() =
             match energy with
                 | Some x -> x.Created, x.ID
                 | None -> 0, ""
-        Api.loadPagePrev created id count false
+        Api.loadPagePrev created id count
 
 
     let fetchAfter energy count =
@@ -208,7 +206,7 @@ let Energies() =
             match energy with
                 | Some x -> x.Created, x.ID
                 | None -> 0, ""
-        Api.loadPageNext created id count false
+        Api.loadPageNext created id count
 
 
     React.useEffect((fun () -> (

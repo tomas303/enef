@@ -187,11 +187,11 @@ module Api =
 
     let loadLastRows() = get $"{url}/lastenergies?count=10"  (Decode.list Decode.energy)
 
-    let loadPagePrev (created : int64) (id: string) (limit: int) (included: bool) =
-        get $"{url}/energies/page/prev?created={created}&id={id}&included={convertbool included}&limit={limit}" (Decode.list Decode.energy)
+    let loadPagePrev (created : int64) (id: string) (limit: int) =
+        get $"{url}/energies/page/prev?created={created}&id={id}&limit={limit}" (Decode.list Decode.energy)
 
-    let loadPageNext (created : int64) (id: string) (limit: int) (included: bool) =
-        get $"{url}/energies/page/next?created={created}&id={id}&included={convertbool included}&limit={limit}" (Decode.list Decode.energy)
+    let loadPageNext (created : int64) (id: string) (limit: int) =
+        get $"{url}/energies/page/next?created={created}&id={id}&limit={limit}" (Decode.list Decode.energy)
 
     let saveItem (item : Energy) = async {
         let json = Encode.energy item
