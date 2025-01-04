@@ -102,9 +102,7 @@ module GridBuffer =
             Bottom = newBottom }
 
     let move data delta fetchBefore fetchAfter = async {
-        Dbg.wl $"before applydelta {data}"
         let newData = applyDelta data delta
-        Dbg.wl $"after applydelta {newData}"
         let! newData =
             if newData.Top < 0 then
                 readBefore newData fetchBefore
@@ -112,14 +110,23 @@ module GridBuffer =
                 readAfter newData fetchAfter
             else
                 async { return newData }
-        Dbg.wl $"before correct {newData}"
         let newData = correct newData
-        Dbg.wl $"after correct {newData}"
         return newData
     }
 
     let view data =
         data.Data[data.Top..data.Bottom]
+
+    let cursorValid data =
+        data.Cursor >= 0 && data.Cursor <= data.Data.Length - 1
+
+    let recordUpdate data item =
+        let newData = data.Data[0 .. data.Cursor - 1] @ [item] @ data.Data[data.Cursor + 1 .. data.Data.Length - 1]
+        { data with Data = newData }
+
+    let recordInsert data item =
+        let newData = data.Data[0 .. data.Cursor - 1] @ [item] @ data.Data[data.Cursor .. data.Data.Length - 1]
+        { data with Data = newData }
 
     let create viewSize dataSize = {
             Top = -1
@@ -170,87 +177,22 @@ let EditEnergy energy onSave onCancel =
     ]
 
 [<RequireQualifiedAccess>]
-type EditState =
+type State =
     | Browsing
     | Adding
     | Editing
     | Saving
+    | Shifting
 
 [<ReactComponent>]
 let Energies() =
 
-    let limit = 15
-
-    let frameHeight = 15
-    let bufferLimit = 30
-
-    let (rows, setRows) = React.useState(Deferred.HasNotStartedYet)
-    let (displayedRows, setDisplayedRows) = React.useState([])
-    let (editState, setEditState) = React.useState(EditState.Browsing)
-    let (saveState, setSaveState) = React.useState(Deferred.HasNotStartedYet)
-    let (cursor, setCursor) = React.useState(-1)
 
     let (buffer, setBuffer) = React.useState(GridBuffer.create 15 100)
     let view = GridBuffer.view buffer
     let (deltaMove, setDeltaMove) = React.useState(1)
-    
-    
-
-    // System.Console.WriteLine $"NEXT ROUND"
-    // System.Console.WriteLine $"cursor = {cursor}"
-    // // System.Console.WriteLine $"displayedRows = {displayedRows}"
-    // System.Console.WriteLine $"rows = {rows}"
-    // System.Console.WriteLine $"editState = {editState}"
-    // System.Console.WriteLine $"saveState = {saveState}"
-
-
-    let isCursorValid () =
-        cursor >= 0 && cursor <= displayedRows.Length - 1
-
-
-    let getBottomCreatedId () = 
-        if displayedRows.Length > 0 then 
-            let energy = displayedRows.[displayedRows.Length - 1]
-            (energy.Created, energy.ID)
-        else (0, "")
-
-
-    let getTopCreatedId () = 
-        if displayedRows.Length > 0 then
-            let energy = displayedRows.[0]
-            (energy.Created, energy.ID)
-        else (0, "")
-
-    let changeDispRows rows =
-        setDisplayedRows(rows)
-        match cursor with
-        | _ when rows.Length = 0 -> setCursor(-1)
-        | x when x > rows.Length - 1 -> setCursor(rows.Length - 1)
-        | x when x < 0 -> setCursor(0)
-        | _ -> ()
-
-
-    let rowsChanged upDirection rows =
-        setRows rows
-        match rows with
-        | Deferred.HasNotStartedYet -> setRows Deferred.HasNotStartedYet
-        | Deferred.InProgress -> setRows Deferred.InProgress
-        | Deferred.Failed error -> setRows (Deferred.Failed error)
-        | Deferred.Resolved (Ok content) ->
-            setRows (Deferred.Resolved (Ok content))
-            match List.length content with
-            | len when len = limit ->
-                changeDispRows content
-            | len when len > 0 && upDirection ->
-                let last = (content.[len-1].Created, content.[len-1].ID)
-                let addItems = List.filter (fun x -> (x.Created, x.ID) > last ) displayedRows
-                let newDispRows = List.truncate limit (List.append content addItems)
-                changeDispRows newDispRows
-            | len when len > 0 && not upDirection ->
-                changeDispRows content
-            | _ -> ()
-        | Deferred.Resolved (Error text) -> 
-            setRows (Deferred.Resolved (Error text))
+    let (editState, setEditState) = React.useState(State.Browsing)
+    let (saveState, setSaveState) = React.useState(Deferred.HasNotStartedYet)
 
 
     let fetchBefore energy count =
@@ -259,6 +201,7 @@ let Energies() =
                 | Some x -> x.Created, x.ID
                 | None -> 0, ""
         Api.loadPagePrev created id count false
+
 
     let fetchAfter energy count =
         let created, id =
@@ -271,7 +214,6 @@ let Energies() =
     React.useEffect((fun () -> (
         async {
             if deltaMove <> 0 then
-                Dbg.wl $"deltamove {deltaMove}"
                 let! newBuffer = GridBuffer.move buffer deltaMove fetchBefore fetchAfter
                 setBuffer newBuffer
                 setDeltaMove 0
@@ -279,103 +221,12 @@ let Energies() =
         )), [| box deltaMove |])
 
 
-    // let handlePageUp() =
-    //     // let created, id = getTopCreatedId ()
-    //     // React.useDeferredCallback((fun () -> Api.loadPagePrev created id limit false), rowsChanged true)
-    //     setCursor(cursor - limit)
-
-    // let handlePageDown() =
-    //     // let created, id = getBottomCreatedId ()
-    //     // React.useDeferredCallback((fun () -> Api.loadPageNext created id limit false), rowsChanged false)
-    //     setCursor(cursor + limit)
-
-    // let handleRowUp() =
-
-    //     // let scroll =
-    //     //     let created, id = getBottomCreatedId ()
-    //     //     let apicall = 
-    //     //         if displayedRows.Length < limit 
-    //     //         then Api.loadPagePrev created id (displayedRows.Length + 1) true
-    //     //         else Api.loadPagePrev created id limit false
-    //     //     React.useDeferredCallback((fun () -> apicall), rowsChanged true)
-
-    //     // if cursor > 0 
-    //     // then fun () -> setCursor(cursor - 1) 
-    //     // else scroll
-    //     setCursor(cursor - 1)
-
-
-    // let handleRowDown() =
-
-    //     // let scroll =
-    //     //     let created, id = getTopCreatedId ()
-    //     //     React.useDeferredCallback((fun () -> Api.loadPageNext created id limit false), rowsChanged false)
-
-    //     // if cursor < displayedRows.Length - 1 
-    //     // then fun () -> setCursor(cursor + 1) 
-    //     // else scroll
-    //     setCursor(cursor + 1)
-
-
-    let handleRefresh =
-
-        let abovePart created id limit = 
-            async {
-                if limit > 0 then
-                    let! rows = Api.loadPagePrev created id limit false
-                    return rows
-                else
-                    return Result.Ok []
-            }
-        
-        let bellowPart created id limit = 
-            async {
-                if limit > 0 then
-                    let! rows = Api.loadPageNext created id limit false
-                    return rows
-                else
-                    return Result.Ok []
-            }
-
-        let refresh energy = 
-            async {
-                let above = abovePart energy.Created energy.ID cursor
-                let bellow = bellowPart energy.Created energy.ID limit
-                let! results = [ above; bellow ] |> Async.Parallel
-                return energy, results.[0], results.[1]
-            }
-
-
-        let onSet x =
-            match x with
-            | Deferred.HasNotStartedYet -> setRows Deferred.HasNotStartedYet
-            | Deferred.InProgress -> setRows Deferred.InProgress
-            | Deferred.Failed error -> setRows (Deferred.Failed error)
-            | Deferred.Resolved (energy, above, bellow) -> 
-                match above, bellow with
-                | Ok above, Ok bellow ->
-                    let newDispRows = List.truncate limit (above @ [energy] @ bellow)
-                    let newCursor = List.findIndex (fun x -> x.ID = energy.ID) newDispRows
-                    setRows (Deferred.Resolved (Ok newDispRows))
-                    setDisplayedRows newDispRows
-                    setCursor newCursor
-                | Error above, Error bellow ->
-                    setRows (Deferred.Resolved (Error (above + bellow)))
-                | Error above, Ok _ ->
-                    setRows (Deferred.Resolved (Error above))
-                | Ok _, Error bellow ->
-                    setRows (Deferred.Resolved (Error bellow))
-
-
-        React.useDeferredCallback(refresh, onSet)
-
-
     let handleAdd () =
-        if editState = EditState.Browsing then setEditState(EditState.Adding)
+        if editState = State.Browsing then setEditState(State.Adding)
 
 
     let handleEdit () =
-        if editState = EditState.Browsing && isCursorValid() then setEditState(EditState.Editing)
+        if editState = State.Browsing && GridBuffer.cursorValid buffer then setEditState(State.Editing)
 
 
     let handleSave =
@@ -383,37 +234,47 @@ let Energies() =
             (fun x -> 
                 setSaveState x
                 match x with
-                | Deferred.HasNotStartedYet -> setEditState(EditState.Browsing)
-                | Deferred.InProgress -> setEditState(EditState.Saving)
-                | Deferred.Failed error -> setEditState(EditState.Browsing)
+                | Deferred.HasNotStartedYet -> setEditState(State.Browsing)
+                | Deferred.InProgress -> setEditState(State.Saving)
+                | Deferred.Failed error -> setEditState(State.Browsing)
                 | Deferred.Resolved content ->
                     match content with
                         | Ok energy ->
                             match editState with
-                            | EditState.Adding ->
-                                handleRefresh energy
-                            | EditState.Editing ->
-                                handleRefresh energy
+                            | State.Adding ->
+                                let newBuffer = GridBuffer.recordInsert buffer energy
+                                setBuffer newBuffer
+                            | State.Editing ->
+                                let newBuffer = GridBuffer.recordUpdate buffer energy
+                                setBuffer newBuffer
                             | _ -> ()
                         | Error _ -> ()
-                    setEditState(EditState.Browsing)
+                    setEditState(State.Browsing)
             )
         )
-    
+
+
     let handleCancel () =
-        setEditState(EditState.Browsing)
+        setEditState(State.Browsing)
 
 
-    let renderError x = 
-        match x with
-        | Deferred.HasNotStartedYet -> Html.none
-        | Deferred.InProgress -> Html.none
-        | Deferred.Failed error -> Html.text error.Message
-        | Deferred.Resolved content ->
-            match content with
-            | Ok _ -> Html.none
-            | Error (text: string) -> Html.text text
+    let renderError () = 
+        let saveErr = 
+            match saveState with
+            | Deferred.HasNotStartedYet -> Html.none
+            | Deferred.InProgress -> Html.none
+            | Deferred.Failed error -> Html.text error.Message
+            | Deferred.Resolved content ->
+                match content with
+                | Ok _ -> Html.none
+                | Error (text: string) -> Html.text text
 
+        let bufferErr =
+            match buffer.Lasterror with
+            | Some error -> Html.text error
+            | None -> Html.none
+        
+        Html.div [ saveErr; bufferErr  ]
 
     let dataRow (item : Energy) = item.ID, [ 
             Constants.EnergyKindToText.[item.Kind]
@@ -423,19 +284,6 @@ let Energies() =
         ]
 
 
-    let firstLoad() =
-        React.useEffect((fun () -> (
-            let call =
-                async {
-                    let! result = Api.loadPageNext 0 "" limit false
-                    rowsChanged false (Deferred.Resolved result)
-                }
-            Async.StartImmediate call
-            )), [||])
-
-
-    firstLoad()
-
     let headers = [
             { Label = "kind" ; FlexBasis = 10 }
             { Label = "created" ; FlexBasis = 40 }
@@ -443,36 +291,34 @@ let Energies() =
             { Label = "info" ; FlexBasis = 100 }
         ]
 
-    // let dataRows = List.map dataRow displayedRows
     let dataRows = List.map dataRow view
 
     let props = {|
             Headers = headers
             Rows = dataRows
-            LoadingInProgress = rows = Deferred.InProgress
+            IsBrowsing = editState = State.Browsing
             RowCount = buffer.ViewSize
             Cursor = buffer.Cursor - buffer.Top
-            OnPageUp = fun () -> setDeltaMove(buffer.ViewSize * -1)
-            OnPageDown = fun () -> setDeltaMove(buffer.ViewSize)
-            OnRowUp = fun () -> setDeltaMove(-1)
-            OnRowDown = fun () -> setDeltaMove(1)
+            OnPageUp = fun () -> if editState = State.Browsing then setDeltaMove(buffer.ViewSize * -1)
+            OnPageDown = fun () -> if editState = State.Browsing then setDeltaMove(buffer.ViewSize)
+            OnRowUp = fun () -> if editState = State.Browsing then setDeltaMove(-1)
+            OnRowDown = fun () -> if editState = State.Browsing then setDeltaMove(1)
             OnAdd = handleAdd
             OnEdit = handleEdit
         |}
 
     let renderEdit =
         match editState with
-        | EditState.Adding -> EditEnergy (Utils.newEnergy()) handleSave handleCancel 
-        | EditState.Editing -> 
-            if isCursorValid()
-            then EditEnergy (displayedRows.[cursor]) handleSave handleCancel
-            else Html.text $"invalid cursor: {cursor}"
+        | State.Adding -> EditEnergy (Utils.newEnergy()) handleSave handleCancel 
+        | State.Editing -> 
+            if GridBuffer.cursorValid buffer
+            then EditEnergy (buffer.Data[buffer.Cursor]) handleSave handleCancel
+            else Html.text $"invalid cursor: {buffer.Cursor}"
 
         | _ -> Html.none
 
     Html.div [
-        renderError rows
-        renderError saveState
+        renderError ()
         WgList props
         renderEdit
     ]

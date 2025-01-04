@@ -46,7 +46,7 @@ let WgListGrid (rows: ReactElement list) =
 let WgList (props:{|
         Headers: WgListHeader list
         Rows: (string * string list) list
-        LoadingInProgress: bool
+        IsBrowsing: bool
         RowCount: int
         Cursor: int
         OnPageUp: unit -> unit
@@ -64,34 +64,33 @@ let WgList (props:{|
         else WgListCell "cursor" " " 5
 
     React.useListener.onKeyDown(fun ev ->
-        // match props.LoadingInProgress with
-        // | false ->
-            match ev.key with
-            | "PageUp" -> props.OnPageUp(); ev.preventDefault()
-            | "PageDown" -> props.OnPageDown(); ev.preventDefault()
-            | "ArrowUp" -> props.OnRowUp(); ev.preventDefault()
-            | "ArrowDown" -> props.OnRowDown(); ev.preventDefault()
-            | _ -> ()
-        // | _ -> ()
+        match ev.key with
+        | "PageUp" -> props.OnPageUp(); ev.preventDefault()
+        | "PageDown" -> props.OnPageDown(); ev.preventDefault()
+        | "ArrowUp" -> props.OnRowUp(); ev.preventDefault()
+        | "ArrowDown" -> props.OnRowDown(); ev.preventDefault()
+        | _ -> ()
     )
 
     let prev = Html.button [
         prop.text "Prev"
         prop.onClick (fun _ -> props.OnPageUp())
-        prop.disabled props.LoadingInProgress
+        prop.disabled (not props.IsBrowsing)
     ]
     let next = Html.button [
         prop.text "Next"
         prop.onClick (fun _ -> props.OnPageDown())
-        prop.disabled props.LoadingInProgress
+        prop.disabled (not props.IsBrowsing)
     ]
     let add = Html.button [
         prop.text "Add"
         prop.onClick (fun _ -> props.OnAdd())
+        prop.disabled (not props.IsBrowsing)
     ]
     let edit = Html.button [
         prop.text "Edit"
         prop.onClick (fun _ -> props.OnEdit())
+        prop.disabled (not props.IsBrowsing)
     ]
 
     let rows = props.Rows |> List.mapi (fun idx (key, row) -> 
