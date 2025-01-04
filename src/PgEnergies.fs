@@ -3,7 +3,7 @@ module PgEnergies
 open Feliz
 open Lib
 open WgEdit
-
+open WgList
 
 [<ReactComponent>]
 let EditEnergy energy onSave onCancel =
@@ -21,15 +21,12 @@ let EditEnergy energy onSave onCancel =
     ]
 
     let handleSave () = 
-        let x = 
-            { energy with
+        onSave { 
+            energy with
                 Amount = amount
                 Created = Utils.localDateTimeToUnixTime(created)
                 Kind = kind
-                Info = info
-            }
-        onSave x
-                
+                Info = info}
 
     WgEdit edits handleSave onCancel
 
@@ -52,22 +49,29 @@ let PgEnergies() =
                 | None -> 0, ""
         Api.loadPageNext created id count
 
-    let dataRow (item : Energy) = item.ID, [ 
+    let rowToListRow (item : Energy) = item.ID, [ 
             Constants.EnergyKindToText.[item.Kind]
-            (Utils.unixTimeToLocalDateTime item.Created).ToString("dd.MM.yyyy HH:mm")
+            (Utils.unixTimeToLocalDateTime item.Created).ToString("dd.MM.yyyy")
             $"{item.Amount} {Constants.EnergyKindToUnit.[item.Kind]}"
             item.Info 
         ]
 
+    let headers = [
+            { Label = "kind" ; FlexBasis = 15 }
+            { Label = "created" ; FlexBasis = 25 }
+            { Label = "amount" ; FlexBasis = 25 }
+            { Label = "info" ; FlexBasis = 100 }
+        ]
+
+
     let props = {|
+            Headers = headers
+            RowToListRow = rowToListRow
+            NewEdit = fun energy -> EditEnergy energy
+            ItemNew = fun () -> Utils.newEnergy()
+            ItemSave = Api.saveItem
             FetchBefore = fetchBefore
             FetchAfter = fetchAfter
-            DataRow = dataRow
-            NewEdit = fun energy -> EditEnergy energy
-            NewItem = fun () -> Utils.newEnergy()
-            SaveItem = Api.saveItem
         |}
 
-    Html.div [
-            WgAgenda.WgAgenda props
-        ]
+    WgAgenda.WgAgenda props

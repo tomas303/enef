@@ -144,12 +144,13 @@ type State =
 
 [<ReactComponent>]
 let WgAgenda (props:{|
+        Headers: list<WgListHeader>
+        RowToListRow: 'T -> string * list<string>
+        NewEdit: 'T -> ('T -> unit) -> (unit -> unit) -> ReactElement
+        ItemNew: unit -> 'T
+        ItemSave: 'T -> Async<Result<'T, string>>
         FetchBefore: Option<'T> -> int -> Async<Result<list<'T>, string>>
         FetchAfter: Option<'T> -> int -> Async<Result<list<'T>, string>>
-        DataRow: 'T -> string * list<string>
-        NewItem: unit -> 'T
-        NewEdit: 'T -> ('T -> unit) -> (unit -> unit) -> ReactElement
-        SaveItem: 'T -> Async<Result<'T, string>>
     |}) =
 
 
@@ -172,7 +173,7 @@ let WgAgenda (props:{|
 
 
     let handleSave =
-        React.useDeferredCallback(props.SaveItem, 
+        React.useDeferredCallback(props.ItemSave, 
             (fun x ->
                 setLastError None
                 match x with
@@ -208,18 +209,10 @@ let WgAgenda (props:{|
         | Some error -> Html.text error
         | None -> Html.none
 
-
-    let headers = [
-            { Label = "kind" ; FlexBasis = 10 }
-            { Label = "created" ; FlexBasis = 40 }
-            { Label = "amount" ; FlexBasis = 15 }
-            { Label = "info" ; FlexBasis = 100 }
-        ]
-
-    let dataRows = List.map props.DataRow view
+    let dataRows = List.map props.RowToListRow view
 
     let listProps = {|
-            Headers = headers
+            Headers = props.Headers
             Rows = dataRows
             IsBrowsing = state = State.Browsing
             RowCount = buffer.ViewSize
@@ -235,7 +228,7 @@ let WgAgenda (props:{|
     let renderEdit =
         match state with
         | State.Adding ->
-            let newItem = props.NewItem()
+            let newItem = props.ItemNew()
             props.NewEdit newItem handleSave handleCancel 
         | State.Editing -> 
             if GridBuffer.cursorValid buffer
