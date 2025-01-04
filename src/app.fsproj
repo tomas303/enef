@@ -8,6 +8,7 @@
     <Compile Include="Lib.fs" />
     <Compile Include="WgEdit.fs" />
     <Compile Include="WgList.fs" />
+    <Compile Include="WgAgenda.fs" />
     <Compile Include="PgEnergies.fs" />
     <Compile Include="App.fs" />
     <Compile Include="Main.fs" />
