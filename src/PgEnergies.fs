@@ -175,7 +175,14 @@ type State =
     | Shifting
 
 [<ReactComponent>]
-let Energies() =
+let Energies (props:{|
+        FetchBefore: Option<'T> -> int -> Async<Result<list<'T>, string>>
+        FetchAfter: Option<'T> -> int -> Async<Result<list<'T>, string>>
+        DataRow: 'T -> string * list<string>
+        NewItem: unit -> 'T
+        NewEdit: 'T -> ('T -> unit) -> (unit -> unit) -> ReactElement
+        SaveItem: 'T -> Async<Result<'T, string>>
+    |}) =
 
 
     let (buffer, setBuffer) = React.useState(GridBuffer.create 15 100)
@@ -184,37 +191,20 @@ let Energies() =
     let (state, setState) = React.useState(State.Browsing)
     let (lastError, setLastError) = React.useState(None)
 
-    let fetchBefore energy count =
-        let created, id =
-            match energy with
-                | Some x -> x.Created, x.ID
-                | None -> 0, ""
-        Api.loadPagePrev created id count
-
-
-    let fetchAfter energy count =
-        let created, id =
-            match energy with
-                | Some x -> x.Created, x.ID
-                | None -> 0, ""
-        Api.loadPageNext created id count
-
 
     React.useEffect((fun () -> (
         async {
             if state = State.Browsing && deltaMove <> 0 then
-                let! newBuffer = GridBuffer.move buffer deltaMove fetchBefore fetchAfter
+                let! newBuffer = GridBuffer.move buffer deltaMove props.FetchBefore props.FetchAfter
                 setBuffer newBuffer
                 setDeltaMove 0
                 setLastError newBuffer.Lasterror
         } |> Async.StartImmediate
         )), [| box deltaMove |])
 
-    let saveItem =
-        Api.saveItem
 
     let handleSave =
-        React.useDeferredCallback(saveItem, 
+        React.useDeferredCallback(props.SaveItem, 
             (fun x ->
                 setLastError None
                 match x with
@@ -250,13 +240,6 @@ let Energies() =
         | Some error -> Html.text error
         | None -> Html.none
 
-    let dataRow (item : Energy) = item.ID, [ 
-            Constants.EnergyKindToText.[item.Kind]
-            (Utils.unixTimeToLocalDateTime item.Created).ToString("dd.MM.yyyy HH:mm")
-            $"{item.Amount} {Constants.EnergyKindToUnit.[item.Kind]}"
-            item.Info 
-        ]
-
 
     let headers = [
             { Label = "kind" ; FlexBasis = 10 }
@@ -265,9 +248,9 @@ let Energies() =
             { Label = "info" ; FlexBasis = 100 }
         ]
 
-    let dataRows = List.map dataRow view
+    let dataRows = List.map props.DataRow view
 
-    let props = {|
+    let listProps = {|
             Headers = headers
             Rows = dataRows
             IsBrowsing = state = State.Browsing
@@ -283,23 +266,57 @@ let Energies() =
 
     let renderEdit =
         match state with
-        | State.Adding -> EditEnergy (Utils.newEnergy()) handleSave handleCancel 
+        | State.Adding ->
+            let newItem = props.NewItem()
+            props.NewEdit newItem handleSave handleCancel 
         | State.Editing -> 
             if GridBuffer.cursorValid buffer
-            then EditEnergy (buffer.Data[buffer.Cursor]) handleSave handleCancel
+            then props.NewEdit (buffer.Data[buffer.Cursor]) handleSave handleCancel
             else Html.text $"invalid cursor: {buffer.Cursor}"
 
         | _ -> Html.none
 
     Html.div [
         renderError ()
-        WgList props
+        WgList listProps
         renderEdit
     ]
 
 
 [<ReactComponent>]
 let PgEnergies() =
+
+    let fetchBefore energy count =
+        let created, id =
+            match energy with
+                | Some x -> x.Created, x.ID
+                | None -> 0, ""
+        Api.loadPagePrev created id count
+
+
+    let fetchAfter energy count =
+        let created, id =
+            match energy with
+                | Some x -> x.Created, x.ID
+                | None -> 0, ""
+        Api.loadPageNext created id count
+
+    let dataRow (item : Energy) = item.ID, [ 
+            Constants.EnergyKindToText.[item.Kind]
+            (Utils.unixTimeToLocalDateTime item.Created).ToString("dd.MM.yyyy HH:mm")
+            $"{item.Amount} {Constants.EnergyKindToUnit.[item.Kind]}"
+            item.Info 
+        ]
+
+    let props = {|
+            FetchBefore = fetchBefore
+            FetchAfter = fetchAfter
+            DataRow = dataRow
+            NewEdit = fun energy -> EditEnergy energy
+            NewItem = fun () -> Utils.newEnergy()
+            SaveItem = Api.saveItem
+        |}
+
     Html.div [
-            Energies()
+            Energies props
         ]
