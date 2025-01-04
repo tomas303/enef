@@ -136,6 +136,7 @@ module GridBuffer =
             Lasterror = None
         }   
 
+
 [<ReactComponent>]
 let EditEnergy energy onSave onCancel =
 
@@ -151,28 +152,19 @@ let EditEnergy energy onSave onCancel =
         StrField { Name = "info" ; Value = info; HandleChange = setInfo }
     ]
 
-    Html.div [
-        WgEdit edits
-        Html.div [
-            Html.button [
-                prop.text "Cancel"
-                prop.onClick (fun _ -> onCancel())
-            ]
-            Html.button [
-                prop.text "Save"
-                prop.onClick (fun _ -> 
-                    let x = 
-                        { energy with
-                            Amount = amount
-                            Created = Utils.localDateTimeToUnixTime(created)
-                            Kind = kind
-                            Info = info
-                        }
-                    onSave x
-                )
-            ]
-        ]
-    ]
+    let handleSave () = 
+        let x = 
+            { energy with
+                Amount = amount
+                Created = Utils.localDateTimeToUnixTime(created)
+                Kind = kind
+                Info = info
+            }
+        onSave x
+                
+
+    WgEdit edits handleSave onCancel
+
 
 [<RequireQualifiedAccess>]
 type State =
@@ -218,9 +210,11 @@ let Energies() =
         } |> Async.StartImmediate
         )), [| box deltaMove |])
 
+    let saveItem =
+        Api.saveItem
 
     let handleSave =
-        React.useDeferredCallback(Api.saveItem, 
+        React.useDeferredCallback(saveItem, 
             (fun x ->
                 setLastError None
                 match x with
