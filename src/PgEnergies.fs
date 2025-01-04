@@ -189,9 +189,8 @@ let Energies() =
     let (buffer, setBuffer) = React.useState(GridBuffer.create 15 100)
     let view = GridBuffer.view buffer
     let (deltaMove, setDeltaMove) = React.useState(1)
-    let (editState, setEditState) = React.useState(State.Browsing)
-    let (saveState, setSaveState) = React.useState(Deferred.HasNotStartedYet)
-
+    let (state, setState) = React.useState(State.Browsing)
+    let (lastError, setLastError) = React.useState(None)
 
     let fetchBefore energy count =
         let created, id =
@@ -211,34 +210,29 @@ let Energies() =
 
     React.useEffect((fun () -> (
         async {
-            if deltaMove <> 0 then
+            if state = State.Browsing && deltaMove <> 0 then
                 let! newBuffer = GridBuffer.move buffer deltaMove fetchBefore fetchAfter
                 setBuffer newBuffer
                 setDeltaMove 0
+                setLastError newBuffer.Lasterror
         } |> Async.StartImmediate
         )), [| box deltaMove |])
 
 
-    let handleAdd () =
-        if editState = State.Browsing then setEditState(State.Adding)
-
-
-    let handleEdit () =
-        if editState = State.Browsing && GridBuffer.cursorValid buffer then setEditState(State.Editing)
-
-
     let handleSave =
         React.useDeferredCallback(Api.saveItem, 
-            (fun x -> 
-                setSaveState x
+            (fun x ->
+                setLastError None
                 match x with
-                | Deferred.HasNotStartedYet -> setEditState(State.Browsing)
-                | Deferred.InProgress -> setEditState(State.Saving)
-                | Deferred.Failed error -> setEditState(State.Browsing)
+                | Deferred.HasNotStartedYet -> setState State.Browsing
+                | Deferred.InProgress -> setState State.Saving
+                | Deferred.Failed exn -> 
+                    setState State.Browsing
+                    setLastError (Some exn.Message)
                 | Deferred.Resolved content ->
                     match content with
                         | Ok energy ->
-                            match editState with
+                            match state with
                             | State.Adding ->
                                 let newBuffer = GridBuffer.recordInsert buffer energy
                                 setBuffer newBuffer
@@ -246,33 +240,21 @@ let Energies() =
                                 let newBuffer = GridBuffer.recordUpdate buffer energy
                                 setBuffer newBuffer
                             | _ -> ()
-                        | Error _ -> ()
-                    setEditState(State.Browsing)
+                        | Error error -> 
+                            setLastError (Some error)
+                    setState(State.Browsing)
             )
         )
 
 
     let handleCancel () =
-        setEditState(State.Browsing)
+        setState(State.Browsing)
 
 
-    let renderError () = 
-        let saveErr = 
-            match saveState with
-            | Deferred.HasNotStartedYet -> Html.none
-            | Deferred.InProgress -> Html.none
-            | Deferred.Failed error -> Html.text error.Message
-            | Deferred.Resolved content ->
-                match content with
-                | Ok _ -> Html.none
-                | Error (text: string) -> Html.text text
-
-        let bufferErr =
-            match buffer.Lasterror with
-            | Some error -> Html.text error
-            | None -> Html.none
-        
-        Html.div [ saveErr; bufferErr  ]
+    let renderError () =
+        match lastError with
+        | Some error -> Html.text error
+        | None -> Html.none
 
     let dataRow (item : Energy) = item.ID, [ 
             Constants.EnergyKindToText.[item.Kind]
@@ -294,19 +276,19 @@ let Energies() =
     let props = {|
             Headers = headers
             Rows = dataRows
-            IsBrowsing = editState = State.Browsing
+            IsBrowsing = state = State.Browsing
             RowCount = buffer.ViewSize
             Cursor = buffer.Cursor - buffer.Top
-            OnPageUp = fun () -> if editState = State.Browsing then setDeltaMove(buffer.ViewSize * -1)
-            OnPageDown = fun () -> if editState = State.Browsing then setDeltaMove(buffer.ViewSize)
-            OnRowUp = fun () -> if editState = State.Browsing then setDeltaMove(-1)
-            OnRowDown = fun () -> if editState = State.Browsing then setDeltaMove(1)
-            OnAdd = handleAdd
-            OnEdit = handleEdit
+            OnPageUp = fun () -> if state = State.Browsing then setDeltaMove(buffer.ViewSize * -1)
+            OnPageDown = fun () -> if state = State.Browsing then setDeltaMove(buffer.ViewSize)
+            OnRowUp = fun () -> if state = State.Browsing then setDeltaMove(-1)
+            OnRowDown = fun () -> if state = State.Browsing then setDeltaMove(1)
+            OnAdd = fun () -> if state = State.Browsing then setState(State.Adding)
+            OnEdit = fun () -> if state = State.Browsing && GridBuffer.cursorValid buffer then setState(State.Editing)
         |}
 
     let renderEdit =
-        match editState with
+        match state with
         | State.Adding -> EditEnergy (Utils.newEnergy()) handleSave handleCancel 
         | State.Editing -> 
             if GridBuffer.cursorValid buffer
