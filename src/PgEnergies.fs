@@ -49,24 +49,18 @@ let PgEnergies() =
                 | None -> 0, ""
         Api.loadPageNext created id count
 
-    let rowToListRow (item : Energy) = item.ID, [ 
-            Constants.EnergyKindToText.[item.Kind]
-            (Utils.unixTimeToLocalDateTime item.Created).ToString("dd.MM.yyyy")
-            $"{item.Amount} {Constants.EnergyKindToUnit.[item.Kind]}"
-            item.Info 
-        ]
-
-    let headers = [
-            { Label = "kind" ; FlexBasis = 15 }
-            { Label = "created" ; FlexBasis = 25 }
-            { Label = "amount" ; FlexBasis = 25 }
-            { Label = "info" ; FlexBasis = 100 }
-        ]
-
+    let structure = {
+            Headers = [
+                { Label = "kind" ; FlexBasis = 15; DataGetter = fun item -> Constants.EnergyKindToText.[item.Kind] }
+                { Label = "created" ; FlexBasis = 25; DataGetter = fun item -> (Utils.unixTimeToLocalDateTime item.Created).ToString("dd.MM.yyyy") }
+                { Label = "amount" ; FlexBasis = 25; DataGetter = fun item -> $"{item.Amount} {Constants.EnergyKindToUnit.[item.Kind]}" }
+                { Label = "info" ; FlexBasis = 100; DataGetter = fun item -> item.Info }
+            ]
+            IdGetter = fun item -> item.ID
+        }
 
     let props = {|
-            Headers = headers
-            RowToListRow = rowToListRow
+            Structure = structure
             NewEdit = fun energy -> EditEnergy energy
             ItemNew = fun () -> Utils.newEnergy()
             ItemSave = Api.saveItem

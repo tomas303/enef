@@ -144,8 +144,7 @@ type State =
 
 [<ReactComponent>]
 let WgAgenda (props:{|
-        Headers: list<WgListHeader>
-        RowToListRow: 'T -> string * list<string>
+        Structure: WgListStructure<'T>
         NewEdit: 'T -> ('T -> unit) -> (unit -> unit) -> ReactElement
         ItemNew: unit -> 'T
         ItemSave: 'T -> Async<Result<'T, string>>
@@ -209,11 +208,16 @@ let WgAgenda (props:{|
         | Some error -> Html.text error
         | None -> Html.none
 
-    let dataRows = List.map props.RowToListRow view
+    let listRows = view |> List.map (fun item ->
+            let row = props.Structure.Headers |> List.map (fun header ->
+                header.DataGetter item
+            )
+            props.Structure.IdGetter(item), row
+    )
 
     let listProps = {|
-            Headers = props.Headers
-            Rows = dataRows
+            Structure = props.Structure
+            Rows = listRows
             IsBrowsing = state = State.Browsing
             RowCount = buffer.ViewSize
             Cursor = buffer.Cursor - buffer.Top

@@ -3,9 +3,15 @@ module WgList
 open Feliz
 open Feliz.UseListener
 
-type WgListHeader = {
+type WgListHeader<'T> = {
     Label: string
     FlexBasis: int
+    DataGetter: 'T -> string
+}
+
+type WgListStructure<'T> = {
+    Headers: List<WgListHeader<'T>>
+    IdGetter: 'T -> string
 }
 
 [<ReactComponent>]
@@ -44,7 +50,7 @@ let WgListGrid (rows: ReactElement list) =
 
 [<ReactComponent>]
 let WgList (props:{|
-        Headers: WgListHeader list
+        Structure: WgListStructure<'T>
         Rows: (string * string list) list
         IsBrowsing: bool
         RowCount: int
@@ -94,13 +100,13 @@ let WgList (props:{|
     ]
 
     let rows = props.Rows |> List.mapi (fun idx (key, row) -> 
-        let cells = List.map2 (fun h r -> WgListCell h.Label r h.FlexBasis) props.Headers row
+        let cells = List.map2 (fun h r -> WgListCell h.Label r h.FlexBasis) props.Structure.Headers row
         WgListRow key ([ cursor(props.Cursor = idx) ] @ cells)
     )
 
     let invrows = 
         [ for i in 1..props.RowCount - rows.Length -> 
-            let cells = props.Headers |> List.map (fun h -> WgListCellInvisible h.Label h.FlexBasis)
+            let cells = props.Structure.Headers |> List.map (fun h -> WgListCellInvisible h.Label h.FlexBasis)
             WgListRow ("invisible_" + i.ToString()) ([ cursor(false) ] @ cells)
         ]
 
