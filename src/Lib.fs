@@ -208,25 +208,22 @@ module Api =
             return makeError status responseText
     }
 
-    let loadItems() = get $"{url}/energies" (Decode.list Decode.energy)
+    module Energies =
+        let loadPagePrev (created : int64) (id: string) (limit: int) =
+            get $"{url}/energies/page/prev?created={created}&id={id}&limit={limit}" (Decode.list Decode.energy)
 
-    let loadLastRows() = get $"{url}/lastenergies?count=10"  (Decode.list Decode.energy)
+        let loadPageNext (created : int64) (id: string) (limit: int) =
+            get $"{url}/energies/page/next?created={created}&id={id}&limit={limit}" (Decode.list Decode.energy)
 
-    let loadPagePrev (created : int64) (id: string) (limit: int) =
-        get $"{url}/energies/page/prev?created={created}&id={id}&limit={limit}" (Decode.list Decode.energy)
-
-    let loadPageNext (created : int64) (id: string) (limit: int) =
-        get $"{url}/energies/page/next?created={created}&id={id}&limit={limit}" (Decode.list Decode.energy)
-
-    let saveItem (item : Energy) = async {
-        let json = Encode.energy item
-        let body = Encode.toString 2 json
-        let! (status, responseText) = Http.post $"{url}/energies" body
-        match status with
-        | 200 -> return Ok item
-        | 201 -> return Ok item
-        | _ -> return makeError status responseText
-    }
+        let saveItem (item : Energy) = async {
+            let json = Encode.energy item
+            let body = Encode.toString 2 json
+            let! (status, responseText) = Http.post $"{url}/energies" body
+            match status with
+            | 200 -> return Ok item
+            | 201 -> return Ok item
+            | _ -> return makeError status responseText
+        }
 
     module Places =
         let loadPagePrev (name : string) (id: string) (limit: int) =

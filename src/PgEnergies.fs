@@ -39,7 +39,7 @@ let PgEnergies() =
             match energy with
                 | Some x -> x.Created, x.ID
                 | None -> 0, ""
-        Api.loadPagePrev created id count
+        Api.Energies.loadPagePrev created id count
 
 
     let fetchAfter energy count =
@@ -47,7 +47,7 @@ let PgEnergies() =
             match energy with
                 | Some x -> x.Created, x.ID
                 | None -> 0, ""
-        Api.loadPageNext created id count
+        Api.Energies.loadPageNext created id count
 
     let structure = {
             Headers = [
@@ -63,7 +63,7 @@ let PgEnergies() =
             Structure = structure
             NewEdit = fun energy -> EditEnergy energy
             ItemNew = fun () -> Utils.newEnergy()
-            ItemSave = Api.saveItem
+            ItemSave = Api.Energies.saveItem
             FetchBefore = fetchBefore
             FetchAfter = fetchAfter
         |}
