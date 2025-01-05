@@ -3,12 +3,14 @@ module App
 
 open Feliz
 open PgEnergies
+open PgPlaces
 
 [<RequireQualifiedAccess>]
 type Page =
     | Home
     | Pricelists
     | Energies
+    | Places
 
 
 let renderMenuNavItem (label : string) (handler : unit -> unit) =
@@ -34,7 +36,8 @@ let App () =
     let menus = [
         renderMenuNavItem "Home" (fun _ -> setCurrentPage Page.Home)
         renderMenuNavItem "Energies" (fun _ -> setCurrentPage Page.Energies)
-        renderMenuNavItem "Pricelists" (fun _ -> setCurrentPage Page.Pricelists) 
+        renderMenuNavItem "Pricelists" (fun _ -> setCurrentPage Page.Pricelists)
+        renderMenuNavItem "Places" (fun _ -> setCurrentPage Page.Places)
     ]
 
     let page =
@@ -42,6 +45,7 @@ let App () =
         | Page.Home -> PgEnergies ()
         | Page.Pricelists -> Html.div "Pricelists - to be done"
         | Page.Energies -> PgEnergies ()
+        | Page.Places -> PgPlaces ()
 
     Html.div [
         prop.classes [ "layout-container" ]

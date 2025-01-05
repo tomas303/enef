@@ -10,6 +10,12 @@ open Fable.DateFunctions
 open Fable.Core.JsInterop
 open Fable.Core
 
+type Place = {
+    ID : string
+    Name: String
+    CircuitBreakerCurrent : int
+}
+
 type EnergyKind =
     | ElektricityVT
     | ElektricityNT
@@ -117,6 +123,12 @@ module Utils =
         Created = localDateTimeToUnixTime System.DateTime.Now
     }
 
+    let newPlace () = {
+        ID = newID ()
+        Name = ""
+        CircuitBreakerCurrent = 0
+    }
+
 module Encode =
 
     let energy (ene : Energy) =
@@ -128,6 +140,12 @@ module Encode =
             "Created", (Encode.int64 ene.Created)
         ]
 
+    let place (pl : Place) =
+        Encode.object [
+            "ID", (Encode.string pl.ID)
+            "Name", (Encode.string pl.Name)
+            "CircuitBreakerCurrent", (Encode.int pl.CircuitBreakerCurrent)
+        ]
 
 module Decode =
 
@@ -151,6 +169,13 @@ module Decode =
             }
         )
 
+    let place : Decoder<Place> =
+        Decode.object (fun fields -> { 
+                ID = fields.Required.At [ "ID" ] Decode.string
+                Name = fields.Required.At [ "Name" ] Decode.string
+                CircuitBreakerCurrent = fields.Required.At [ "CircuitBreakerCurrent" ] Decode.int
+            }
+        )
 
 module Api =
 
@@ -202,3 +227,21 @@ module Api =
         | 201 -> return Ok item
         | _ -> return makeError status responseText
     }
+
+    module Places =
+        let loadPagePrev (name : string) (id: string) (limit: int) =
+            get $"{url}/places/page/prev?name={name}&id={id}&limit={limit}" (Decode.list Decode.place)
+
+        let loadPageNext (name : string) (id: string) (limit: int) =
+            get $"{url}/places/page/next?name={name}&id={id}&limit={limit}" (Decode.list Decode.place)
+
+        let saveItem (item : Place) = async {
+            let json = Encode.place item
+            let body = Encode.toString 2 json
+            let! (status, responseText) = Http.post $"{url}/places" body
+            match status with
+            | 200 -> return Ok item
+            | 201 -> return Ok item
+            | _ -> return makeError status responseText
+        }
+
