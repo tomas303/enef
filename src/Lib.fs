@@ -28,6 +28,7 @@ type Energy = {
     Amount : int
     Info : string
     Created : int64 
+    Place_ID : string
 }
 
 module Dbg =
@@ -121,6 +122,7 @@ module Utils =
         Amount = 0
         Info = ""
         Created = localDateTimeToUnixTime System.DateTime.Now
+        Place_ID = ""
     }
 
     let newPlace () = {
@@ -138,6 +140,7 @@ module Encode =
             "Amount", (Encode.int ene.Amount)
             "Info", (Encode.string ene.Info)
             "Created", (Encode.int64 ene.Created)
+            "Place_ID", (Encode.string ene.Place_ID)
         ]
 
     let place (pl : Place) =
@@ -166,6 +169,7 @@ module Decode =
                 Info = fields.Required.At [ "Info" ] Decode.string
                 Created = fields.Required.At [ "Created" ] Decode.int64
                 Kind = fields.Required.At [ "Kind" ] energyKind
+                Place_ID = fields.Required.At [ "Place_ID" ] Decode.string
             }
         )
 
@@ -231,6 +235,9 @@ module Api =
 
         let loadPageNext (name : string) (id: string) (limit: int) =
             get $"{url}/places/page/next?name={name}&id={id}&limit={limit}" (Decode.list Decode.place)
+
+        let loadAll () =
+            get $"{url}/places" (Decode.list Decode.place)
 
         let saveItem (item : Place) = async {
             let json = Encode.place item

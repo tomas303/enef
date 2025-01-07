@@ -34,7 +34,7 @@ type DateTimeField = {
 type SelectField = {
     Name : string
     Value : string
-    Offer : list<string>
+    Offer : list<string * string>
     HandleChange : string -> unit }
 
 type Field =
@@ -86,22 +86,19 @@ let WgDateTime (value : DateTime) (onChange : DateTime -> unit) =
 
 
 [<ReactComponent>]
-let WgSelect (value : string) (onChange : string -> unit) (offer : string list) =
-
-    let options =
-        offer
-        |> List.map (fun x ->
-            Html.option [
-            prop.text x
-            prop.value x
-            ]
-        )
-
+let WgSelect (selectedId: string) (onSelect: string -> unit) (items: (string * string) list) =
     Html.select [
-        prop.classes [ "edit-item" ]
-        prop.children options
-        prop.onChange onChange
-        prop.value value
+        prop.value selectedId
+        prop.onChange onSelect
+        prop.children (
+            items |> List.map (fun (id, name) ->
+                Lib.Dbg.wl $"id: {id} name: {name}"
+                Html.option [
+                    prop.value id
+                    prop.text name
+                ]
+            )
+        )
     ]
 
 

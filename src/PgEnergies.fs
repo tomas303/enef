@@ -11,13 +11,28 @@ let EditEnergy energy onSave onCancel =
     let (kind, setKind) = React.useState(energy.Kind)
     let (created, setCreated) = React.useState(Utils.unixTimeToLocalDateTime(energy.Created))
     let (amount, setAmount) = React.useState(energy.Amount)
-    let (info, setInfo) = React.useState(energy.Info)
+    let (place_id, setPlace_id) = React.useState(energy.Place_ID)
+    let (places, setPlaces) = React.useState([])
+
+    React.useEffect((fun () -> (
+        async {
+            let! items = Lib.Api.Places.loadAll()
+            match items with
+            | Ok content ->
+                let newPlaces = content |> List.map (fun x -> x.ID, x.Name)
+                setPlaces newPlaces
+            | Error _ ->
+                setPlaces []
+        } |> Async.StartImmediate
+        )), [| |])
+
+
 
     let edits = [
         DateTimeField { Name = "created" ; Value = created; HandleChange = setCreated }
-        SelectField { Name = "kind" ; Value = Constants.EnergyKindToText.[kind]; Offer = Seq.toList Constants.TextToEnergyKind.Keys; HandleChange = (fun x -> setKind Constants.TextToEnergyKind.[x]) }
+        SelectField { Name = "kind" ; Value = Constants.EnergyKindToText.[kind]; Offer = Seq.toList Constants.TextToEnergyKind.Keys |> List.map (fun key -> key, key); HandleChange = (fun x -> setKind Constants.TextToEnergyKind.[x]) }
         IntField { Name = "amount" ; Value = amount; HandleChange = setAmount }
-        StrField { Name = "info" ; Value = info; HandleChange = setInfo }
+        SelectField { Name = "place_id" ; Value = place_id; Offer = places; HandleChange = setPlace_id }
     ]
 
     let handleSave () = 
@@ -26,13 +41,31 @@ let EditEnergy energy onSave onCancel =
                 Amount = amount
                 Created = Utils.localDateTimeToUnixTime(created)
                 Kind = kind
-                Info = info}
+                Place_ID = place_id}
 
     WgEdit edits handleSave onCancel
 
 
 [<ReactComponent>]
 let PgEnergies() =
+
+    let (places, setPlaces) = React.useState(Map.empty)
+
+    React.useEffectOnce(fun () ->
+        let fetchPlaces = async {
+            let! items = Lib.Api.Places.loadAll()
+            match items with
+            | Ok content ->
+                let newPlaces = content |> List.map (fun x -> x.ID, x.Name) |> Map.ofList
+                setPlaces newPlaces
+            | Error _ ->
+                setPlaces Map.empty
+        }
+        Async.StartImmediate fetchPlaces
+    )
+
+    let memoizedPlaces = React.useMemo((fun () -> places), [| places |])
+
 
     let fetchBefore energy count =
         let created, id =
@@ -54,7 +87,7 @@ let PgEnergies() =
                 { Label = "kind" ; FlexBasis = 15; DataGetter = fun item -> Constants.EnergyKindToText.[item.Kind] }
                 { Label = "created" ; FlexBasis = 25; DataGetter = fun item -> (Utils.unixTimeToLocalDateTime item.Created).ToString("dd.MM.yyyy") }
                 { Label = "amount" ; FlexBasis = 25; DataGetter = fun item -> $"{item.Amount} {Constants.EnergyKindToUnit.[item.Kind]}" }
-                { Label = "info" ; FlexBasis = 100; DataGetter = fun item -> item.Info }
+                { Label = "place_id" ; FlexBasis = 10; DataGetter = fun item -> memoizedPlaces[item.Place_ID] }
             ]
             IdGetter = fun item -> item.ID
         }
