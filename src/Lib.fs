@@ -16,6 +16,11 @@ type Place = {
     CircuitBreakerCurrent : int
 }
 
+type Provider = {
+    ID : string
+    Name: String
+}
+
 type EnergyKind =
     | ElektricityVT
     | ElektricityNT
@@ -131,6 +136,11 @@ module Utils =
         CircuitBreakerCurrent = 0
     }
 
+    let newProvider () = {
+        ID = newID ()
+        Name = ""
+    }
+
 module Encode =
 
     let energy (ene : Energy) =
@@ -148,6 +158,12 @@ module Encode =
             "ID", (Encode.string pl.ID)
             "Name", (Encode.string pl.Name)
             "CircuitBreakerCurrent", (Encode.int pl.CircuitBreakerCurrent)
+        ]
+
+    let provider (pr : Provider) =
+        Encode.object [
+            "ID", (Encode.string pr.ID)
+            "Name", (Encode.string pr.Name)
         ]
 
 module Decode =
@@ -178,6 +194,13 @@ module Decode =
                 ID = fields.Required.At [ "ID" ] Decode.string
                 Name = fields.Required.At [ "Name" ] Decode.string
                 CircuitBreakerCurrent = fields.Required.At [ "CircuitBreakerCurrent" ] Decode.int
+            }
+        )
+
+    let provider : Decoder<Provider> =
+        Decode.object (fun fields -> { 
+                ID = fields.Required.At [ "ID" ] Decode.string
+                Name = fields.Required.At [ "Name" ] Decode.string
             }
         )
 
@@ -243,6 +266,26 @@ module Api =
             let json = Encode.place item
             let body = Encode.toString 2 json
             let! (status, responseText) = Http.post $"{url}/places" body
+            match status with
+            | 200 -> return Ok item
+            | 201 -> return Ok item
+            | _ -> return makeError status responseText
+        }
+
+    module Providers =
+        let loadPagePrev (name : string) (id: string) (limit: int) =
+            get $"{url}/providers/page/prev?name={name}&id={id}&limit={limit}" (Decode.list Decode.provider)
+
+        let loadPageNext (name : string) (id: string) (limit: int) =
+            get $"{url}/providers/page/next?name={name}&id={id}&limit={limit}" (Decode.list Decode.provider)
+
+        let loadAll () =
+            get $"{url}/providers" (Decode.list Decode.provider)
+
+        let saveItem (item : Provider) = async {
+            let json = Encode.provider item
+            let body = Encode.toString 2 json
+            let! (status, responseText) = Http.post $"{url}/providers" body
             match status with
             | 200 -> return Ok item
             | 201 -> return Ok item

@@ -10,6 +10,7 @@
     <Compile Include="WgList.fs" />
     <Compile Include="WgAgenda.fs" />
     <Compile Include="PgPlaces.fs" />
+    <Compile Include="PgProviders.fs" />
     <Compile Include="PgEnergies.fs" />
     <Compile Include="App.fs" />
     <Compile Include="Main.fs" />

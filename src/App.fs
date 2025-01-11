@@ -4,6 +4,7 @@ module App
 open Feliz
 open PgEnergies
 open PgPlaces
+open PgProviders
 
 [<RequireQualifiedAccess>]
 type Page =
@@ -11,7 +12,7 @@ type Page =
     | Pricelists
     | Energies
     | Places
-
+    | Providers
 
 let renderMenuNavItem (label : string) (handler : unit -> unit) =
     Html.a [
@@ -19,14 +20,12 @@ let renderMenuNavItem (label : string) (handler : unit -> unit) =
         prop.children [ Html.text label ]
     ]
 
-
 [<ReactComponent>]
 let Menunav (menus : ReactElement list) =
     Html.nav [
         prop.classes [ "menu" ]
         prop.children menus
     ]
-
 
 [<ReactComponent>]
 let App () =
@@ -38,6 +37,7 @@ let App () =
         renderMenuNavItem "Energies" (fun _ -> setCurrentPage Page.Energies)
         renderMenuNavItem "Pricelists" (fun _ -> setCurrentPage Page.Pricelists)
         renderMenuNavItem "Places" (fun _ -> setCurrentPage Page.Places)
+        renderMenuNavItem "Providers" (fun _ -> setCurrentPage Page.Providers)
     ]
 
     let page =
@@ -46,6 +46,7 @@ let App () =
         | Page.Pricelists -> Html.div "Pricelists - to be done"
         | Page.Energies -> PgEnergies ()
         | Page.Places -> PgPlaces ()
+        | Page.Providers -> PgProviders ()
 
     Html.div [
         prop.classes [ "layout-container" ]
