@@ -27,6 +27,11 @@ type EnergyKind =
     | Gas
     | Water
 
+type PriceType =
+    | GasVolume
+    | GasPermanent
+    | GasTax
+
 type Energy = {
     ID : string
     Kind: EnergyKind
@@ -37,10 +42,11 @@ type Energy = {
 }
 
 type Price = {
+    ID: string
     Value: int
     FromDate: string
     Provider_ID: string
-    EnergyKind: EnergyKind
+    PriceType: PriceType
 }
 
 module Dbg =
@@ -94,6 +100,35 @@ module Constants =
             4, EnergyKind.Water
         ]
 
+    let PriceTypeToText = 
+        Map [
+            PriceType.GasVolume, "Gas Volume"
+            PriceType.GasPermanent, "Gas Permanent"
+            PriceType.GasTax, "Gas tax"
+        ]
+
+    let TextToPriceType = 
+        Map [
+            "Gas Volume", PriceType.GasVolume
+            "Gas Permanent", PriceType.GasPermanent
+            "Gas tax", PriceType.GasTax
+        ]
+
+    let PriceTypeToInt = 
+        Map [
+            PriceType.GasVolume, 1
+            PriceType.GasPermanent, 2
+            PriceType.GasTax, 3
+        ]
+
+    let IntToPriceType = 
+        Map [
+            1, PriceType.GasVolume
+            2, PriceType.GasPermanent
+            3, PriceType.GasTax
+        ]
+
+    let PriceTypeSelection = [for x in TextToPriceType.Keys -> (x, x)]
 
 module Utils =
 
@@ -126,6 +161,11 @@ module Utils =
         | x when (Map.containsKey value Constants.IntToEnergyKind) -> Some(Constants.IntToEnergyKind.[x])
         | _ -> None
 
+    let intToPriceType (value: int): PriceType option =
+        match value with
+        | x when (Map.containsKey value Constants.IntToPriceType) -> Some(Constants.IntToPriceType.[x])
+        | _ -> None
+
     let newID () = System.Guid.NewGuid().ToString()
 
     let newEnergy () = {
@@ -149,10 +189,11 @@ module Utils =
     }
 
     let newPrice () = {
+        ID = newID ()
         Value = 0
         FromDate = DateTime.Now.ToString("yyyyMMdd")
         Provider_ID = ""
-        EnergyKind = EnergyKind.ElektricityVT
+        PriceType = PriceType.GasVolume
     }
 
 module Encode =
@@ -182,10 +223,11 @@ module Encode =
 
     let price (pr : Price) =
         Encode.object [
+            "ID", (Encode.string pr.ID)
             "Value", (Encode.int pr.Value)
             "FromDate", (Encode.string pr.FromDate)
             "Provider_ID", (Encode.string pr.Provider_ID)
-            "EnergyKind", (Encode.int (Constants.EnergyKindToInt.[pr.EnergyKind]))
+            "PriceType", (Encode.int (Constants.PriceTypeToInt.[pr.PriceType]))
         ]
 
 module Decode =
@@ -197,6 +239,16 @@ module Decode =
             match Utils.intToEnergyKind(value) with
             | Some x -> Ok x
             | None -> (path, BadPrimitive("int value mapping kind out of range", value)) |> Error
+        else
+            (path, BadPrimitive("value mapping kind is not a number", value)) |> Error
+
+    let priceType: Decoder<PriceType> =
+        fun path value ->
+        if Decode.Helpers.isNumber value then
+            let value : int = unbox value
+            match Utils.intToPriceType(value) with
+            | Some x -> Ok x
+            | None -> (path, BadPrimitive("int value mapping type out of range", value)) |> Error
         else
             (path, BadPrimitive("value mapping kind is not a number", value)) |> Error
 
@@ -228,10 +280,11 @@ module Decode =
 
     let price : Decoder<Price> =
         Decode.object (fun fields -> { 
+                ID = fields.Required.At [ "ID" ] Decode.string
                 Value = fields.Required.At [ "Value" ] Decode.int
                 FromDate = fields.Required.At [ "FromDate" ] Decode.string
                 Provider_ID = fields.Required.At [ "Provider_ID" ] Decode.string
-                EnergyKind = fields.Required.At [ "EnergyKind" ] energyKind
+                PriceType = fields.Required.At [ "PriceType" ] priceType
             }
         )
 
@@ -337,9 +390,9 @@ module Api =
             | _ -> return makeError status responseText
         }
 
-        let loadPagePrev (fromDate : string) (limit: int) =
-            get $"{url}/prices/page/prev?fromdate={fromDate}&limit={limit}" (Decode.list Decode.price)
+        let loadPagePrev (fromDate : string) (id: string) (limit: int) =
+            get $"{url}/prices/page/prev?fromdate={fromDate}&id={id}&limit={limit}" (Decode.list Decode.price)
 
-        let loadPageNext (fromDate : string) (limit: int) =
-            get $"{url}/prices/page/next?fromdate={fromDate}&limit={limit}" (Decode.list Decode.price)
+        let loadPageNext (fromDate : string) (id: string) (limit: int) =
+            get $"{url}/prices/page/next?fromdate={fromDate}&id={id}&limit={limit}" (Decode.list Decode.price)
 
