@@ -5,6 +5,7 @@ open Feliz
 open PgEnergies
 open PgPlaces
 open PgProviders
+open PgPrices
 
 [<RequireQualifiedAccess>]
 type Page =
@@ -13,6 +14,7 @@ type Page =
     | Energies
     | Places
     | Providers
+    | Prices
 
 let renderMenuNavItem (label : string) (handler : unit -> unit) =
     Html.a [
@@ -38,6 +40,7 @@ let App () =
         renderMenuNavItem "Pricelists" (fun _ -> setCurrentPage Page.Pricelists)
         renderMenuNavItem "Places" (fun _ -> setCurrentPage Page.Places)
         renderMenuNavItem "Providers" (fun _ -> setCurrentPage Page.Providers)
+        renderMenuNavItem "Prices" (fun _ -> setCurrentPage Page.Prices)
     ]
 
     let page =
@@ -47,6 +50,7 @@ let App () =
         | Page.Energies -> PgEnergies ()
         | Page.Places -> PgPlaces ()
         | Page.Providers -> PgProviders ()
+        | Page.Prices -> PgPrices ()
 
     Html.div [
         prop.classes [ "layout-container" ]

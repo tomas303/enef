@@ -36,6 +36,13 @@ type Energy = {
     Place_ID : string
 }
 
+type Price = {
+    Value: int
+    FromDate: string
+    Provider_ID: string
+    EnergyKind: EnergyKind
+}
+
 module Dbg =
     
     let wl (x: string) = System.Console.WriteLine x
@@ -141,6 +148,13 @@ module Utils =
         Name = ""
     }
 
+    let newPrice () = {
+        Value = 0
+        FromDate = DateTime.Now.ToString("yyyyMMdd")
+        Provider_ID = ""
+        EnergyKind = EnergyKind.ElektricityVT
+    }
+
 module Encode =
 
     let energy (ene : Energy) =
@@ -164,6 +178,14 @@ module Encode =
         Encode.object [
             "ID", (Encode.string pr.ID)
             "Name", (Encode.string pr.Name)
+        ]
+
+    let price (pr : Price) =
+        Encode.object [
+            "Value", (Encode.int pr.Value)
+            "FromDate", (Encode.string pr.FromDate)
+            "Provider_ID", (Encode.string pr.Provider_ID)
+            "EnergyKind", (Encode.int (Constants.EnergyKindToInt.[pr.EnergyKind]))
         ]
 
 module Decode =
@@ -201,6 +223,15 @@ module Decode =
         Decode.object (fun fields -> { 
                 ID = fields.Required.At [ "ID" ] Decode.string
                 Name = fields.Required.At [ "Name" ] Decode.string
+            }
+        )
+
+    let price : Decoder<Price> =
+        Decode.object (fun fields -> { 
+                Value = fields.Required.At [ "Value" ] Decode.int
+                FromDate = fields.Required.At [ "FromDate" ] Decode.string
+                Provider_ID = fields.Required.At [ "Provider_ID" ] Decode.string
+                EnergyKind = fields.Required.At [ "EnergyKind" ] energyKind
             }
         )
 
@@ -291,4 +322,24 @@ module Api =
             | 201 -> return Ok item
             | _ -> return makeError status responseText
         }
+
+    module Prices =
+        let loadAll () =
+            get $"{url}/prices" (Decode.list Decode.price)
+
+        let saveItem (item : Price) = async {
+            let json = Encode.price item
+            let body = Encode.toString 2 json
+            let! (status, responseText) = Http.post $"{url}/prices" body
+            match status with
+            | 200 -> return Ok item
+            | 201 -> return Ok item
+            | _ -> return makeError status responseText
+        }
+
+        let loadPagePrev (fromDate : string) (limit: int) =
+            get $"{url}/prices/page/prev?fromdate={fromDate}&limit={limit}" (Decode.list Decode.price)
+
+        let loadPageNext (fromDate : string) (limit: int) =
+            get $"{url}/prices/page/next?fromdate={fromDate}&limit={limit}" (Decode.list Decode.price)
 

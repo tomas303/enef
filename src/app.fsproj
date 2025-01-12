@@ -12,6 +12,7 @@
     <Compile Include="PgPlaces.fs" />
     <Compile Include="PgProviders.fs" />
     <Compile Include="PgEnergies.fs" />
+    <Compile Include="PgPrices.fs" />
     <Compile Include="App.fs" />
     <Compile Include="Main.fs" />
   </ItemGroup>
