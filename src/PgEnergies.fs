@@ -6,7 +6,7 @@ open WgEdit
 open WgList
 
 [<ReactComponent>]
-let EditEnergy energy onSave onCancel =
+let EditEnergy (energy: Energy) onSave onCancel =
 
     let (kind, setKind) = React.useState(energy.Kind)
     let (created, setCreated) = React.useState(Utils.unixTimeToLocalDateTime(energy.Created))
@@ -82,7 +82,7 @@ let PgEnergies() =
                 | None -> 0, ""
         Api.Energies.loadPageNext created id count
 
-    let structure = {
+    let structure: WgListStructure<Energy> = {
             Headers = [
                 { Label = "kind" ; FlexBasis = 15; DataGetter = fun item -> Constants.EnergyKindToText.[item.Kind] }
                 { Label = "created" ; FlexBasis = 25; DataGetter = fun item -> (Utils.unixTimeToLocalDateTime item.Created).ToString("dd.MM.yyyy") }

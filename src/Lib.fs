@@ -28,9 +28,9 @@ type EnergyKind =
     | Water
 
 type PriceType =
-    | GasVolume
-    | GasPermanent
-    | GasTax
+    | Volume
+    | Month
+    | Tax
 
 type Energy = {
     ID : string
@@ -47,6 +47,7 @@ type Price = {
     FromDate: string
     Provider_ID: string
     PriceType: PriceType
+    EnergyKind: EnergyKind
 }
 
 module Dbg =
@@ -102,32 +103,33 @@ module Constants =
 
     let PriceTypeToText = 
         Map [
-            PriceType.GasVolume, "Gas Volume"
-            PriceType.GasPermanent, "Gas Permanent"
-            PriceType.GasTax, "Gas tax"
+            PriceType.Volume, "Per volume"
+            PriceType.Month, "Monthly"
+            PriceType.Tax, "Tax(%)"
         ]
 
     let TextToPriceType = 
         Map [
-            "Gas Volume", PriceType.GasVolume
-            "Gas Permanent", PriceType.GasPermanent
-            "Gas tax", PriceType.GasTax
+            "Per volume", PriceType.Volume
+            "Monthly", PriceType.Month
+            "Tax(%)", PriceType.Tax
         ]
 
     let PriceTypeToInt = 
         Map [
-            PriceType.GasVolume, 1
-            PriceType.GasPermanent, 2
-            PriceType.GasTax, 3
+            PriceType.Volume, 1
+            PriceType.Month, 2
+            PriceType.Tax, 3
         ]
 
     let IntToPriceType = 
         Map [
-            1, PriceType.GasVolume
-            2, PriceType.GasPermanent
-            3, PriceType.GasTax
+            1, PriceType.Volume
+            2, PriceType.Month
+            3, PriceType.Tax
         ]
 
+    let EnergyKindSelection = [for x in TextToEnergyKind.Keys -> (x, x)]
     let PriceTypeSelection = [for x in TextToPriceType.Keys -> (x, x)]
 
 module Utils =
@@ -193,7 +195,8 @@ module Utils =
         Value = 0
         FromDate = DateTime.Now.ToString("yyyyMMdd")
         Provider_ID = ""
-        PriceType = PriceType.GasVolume
+        PriceType = PriceType.Volume
+        EnergyKind = EnergyKind.ElektricityNT
     }
 
 module Encode =
@@ -228,6 +231,7 @@ module Encode =
             "FromDate", (Encode.string pr.FromDate)
             "Provider_ID", (Encode.string pr.Provider_ID)
             "PriceType", (Encode.int (Constants.PriceTypeToInt.[pr.PriceType]))
+            "EnergyKind", (Encode.int (Constants.EnergyKindToInt.[pr.EnergyKind]))
         ]
 
 module Decode =
@@ -235,8 +239,8 @@ module Decode =
     let energyKind: Decoder<EnergyKind> =
         fun path value ->
         if Decode.Helpers.isNumber value then
-            let value : int = unbox value
-            match Utils.intToEnergyKind(value) with
+            let uval : int = unbox value
+            match Utils.intToEnergyKind(uval) with
             | Some x -> Ok x
             | None -> (path, BadPrimitive("int value mapping kind out of range", value)) |> Error
         else
@@ -285,6 +289,7 @@ module Decode =
                 FromDate = fields.Required.At [ "FromDate" ] Decode.string
                 Provider_ID = fields.Required.At [ "Provider_ID" ] Decode.string
                 PriceType = fields.Required.At [ "PriceType" ] priceType
+                EnergyKind = fields.Required.At [ "EnergyKind" ] energyKind
             }
         )
 

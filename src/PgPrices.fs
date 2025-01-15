@@ -12,6 +12,7 @@ let EditPrice (price: Price) onSave onCancel =
     let (fromDate, setFromDate) = React.useState(price.FromDate)
     let (provider_ID, setProvider_ID) = React.useState(price.Provider_ID)
     let (priceType, setPriceType) = React.useState(price.PriceType)
+    let (energyKind, setEnergyKind) = React.useState(price.EnergyKind)
     let (providers, setProviders) = React.useState([])
 
     React.useEffect((fun () -> (
@@ -30,8 +31,9 @@ let EditPrice (price: Price) onSave onCancel =
     let edits = [
         IntField { Name = "value" ; Value = value; HandleChange = setValue }
         StrField { Name = "fromDate" ; Value = fromDate; HandleChange = setFromDate }
-        SelectField { Name = "provider_ID" ; Value = provider_ID; Offer = providers; HandleChange = setProvider_ID }
+        SelectField { Name = "energyKind" ; Value = Constants.EnergyKindToText[energyKind]; Offer = Constants.EnergyKindSelection; HandleChange = (fun x -> setEnergyKind Constants.TextToEnergyKind[x]) }
         SelectField { Name = "priceType" ; Value = Constants.PriceTypeToText[priceType]; Offer = Constants.PriceTypeSelection; HandleChange = (fun x -> setPriceType Constants.TextToPriceType[x]) }
+        SelectField { Name = "provider_ID" ; Value = provider_ID; Offer = providers; HandleChange = setProvider_ID }
     ]
 
     let handleSave () = 
@@ -40,7 +42,8 @@ let EditPrice (price: Price) onSave onCancel =
                 Value = value
                 FromDate = fromDate
                 Provider_ID = provider_ID
-                PriceType = priceType }
+                PriceType = priceType
+                EnergyKind = energyKind }
 
     WgEdit edits handleSave onCancel
 
@@ -89,6 +92,7 @@ let PgPrices() =
                     | Some name -> name
                     | None -> "Unknown Provider" }
                 { Label = "priceType" ; FlexBasis = 30; DataGetter = fun (item: Price) -> Constants.PriceTypeToText[item.PriceType] }
+                { Label = "kind" ; FlexBasis = 30; DataGetter = fun (item: Price) -> Constants.EnergyKindToText[item.EnergyKind] }
             ]
             IdGetter = fun (item: Price) -> item.ID
         }
