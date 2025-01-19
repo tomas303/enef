@@ -11,6 +11,7 @@
     <Compile Include="WgAgenda.fs" />
     <Compile Include="PgPlaces.fs" />
     <Compile Include="PgProviders.fs" />
+    <Compile Include="PgProducts.fs" />
     <Compile Include="PgEnergies.fs" />
     <Compile Include="PgPrices.fs" />
     <Compile Include="App.fs" />

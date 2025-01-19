@@ -21,6 +21,12 @@ type Provider = {
     Name: String
 }
 
+type Product = {
+    ID : string
+    Name: String
+    Provider_ID : string
+}
+
 type EnergyKind =
     | ElektricityVT
     | ElektricityNT
@@ -190,6 +196,12 @@ module Utils =
         Name = ""
     }
 
+    let newProduct () = {
+        ID = newID ()
+        Name = ""
+        Provider_ID = ""
+    }
+
     let newPrice () = {
         ID = newID ()
         Value = 0
@@ -222,6 +234,13 @@ module Encode =
         Encode.object [
             "ID", (Encode.string pr.ID)
             "Name", (Encode.string pr.Name)
+        ]
+
+    let product (pr : Product) =
+        Encode.object [
+            "ID", (Encode.string pr.ID)
+            "Name", (Encode.string pr.Name)
+            "Provider_ID", (Encode.string pr.Provider_ID)
         ]
 
     let price (pr : Price) =
@@ -279,6 +298,14 @@ module Decode =
         Decode.object (fun fields -> { 
                 ID = fields.Required.At [ "ID" ] Decode.string
                 Name = fields.Required.At [ "Name" ] Decode.string
+            }
+        )
+
+    let product : Decoder<Product> =
+        Decode.object (fun fields -> { 
+                ID = fields.Required.At [ "ID" ] Decode.string
+                Name = fields.Required.At [ "Name" ] Decode.string
+                Provider_ID = fields.Required.At [ "Provider_ID" ] Decode.string
             }
         )
 
@@ -375,6 +402,26 @@ module Api =
             let json = Encode.provider item
             let body = Encode.toString 2 json
             let! (status, responseText) = Http.post $"{url}/providers" body
+            match status with
+            | 200 -> return Ok item
+            | 201 -> return Ok item
+            | _ -> return makeError status responseText
+        }
+
+    module Products =
+        let loadPagePrev (name : string) (id: string) (limit: int) =
+            get $"{url}/products/page/prev?name={name}&id={id}&limit={limit}" (Decode.list Decode.product)
+
+        let loadPageNext (name : string) (id: string) (limit: int) =
+            get $"{url}/products/page/next?name={name}&id={id}&limit={limit}" (Decode.list Decode.product)
+
+        let loadAll () =
+            get $"{url}/products" (Decode.list Decode.product)
+
+        let saveItem (item : Product) = async {
+            let json = Encode.product item
+            let body = Encode.toString 2 json
+            let! (status, responseText) = Http.post $"{url}/products" body
             match status with
             | 200 -> return Ok item
             | 201 -> return Ok item
