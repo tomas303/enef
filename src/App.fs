@@ -7,6 +7,7 @@ open PgPlaces
 open PgProviders
 open PgProducts
 open PgPrices
+open PgPlaceProducts
 
 [<RequireQualifiedAccess>]
 type Page =
@@ -17,7 +18,8 @@ type Page =
     | Providers
     | Products
     | Prices
-
+    | PlaceProducts
+    
 let renderMenuNavItem (label : string) (handler : unit -> unit) =
     Html.a [
         prop.onClick (fun _ -> handler ())
@@ -44,6 +46,7 @@ let App () =
         renderMenuNavItem "Providers" (fun _ -> setCurrentPage Page.Providers)
         renderMenuNavItem "Products" (fun _ -> setCurrentPage Page.Products)
         renderMenuNavItem "Prices" (fun _ -> setCurrentPage Page.Prices)
+        renderMenuNavItem "PlaceProducts" (fun _ -> setCurrentPage Page.PlaceProducts)
     ]
 
     let page =
@@ -55,6 +58,7 @@ let App () =
         | Page.Providers -> PgProviders ()
         | Page.Products -> PgProducts ()
         | Page.Prices -> PgPrices ()
+        | Page.PlaceProducts -> PgPlaceProducts ()
 
     Html.div [
         prop.classes [ "layout-container" ]

@@ -47,6 +47,13 @@ type Energy = {
     Place_ID : string
 }
 
+type PlaceProduct = {
+    ID: string
+    FromDate: string
+    Place_ID: string
+    Product_ID: string
+}
+
 type Price = {
     ID: string
     Value: int
@@ -211,6 +218,13 @@ module Utils =
         EnergyKind = EnergyKind.ElektricityNT
     }
 
+    let newPlaceProduct () = {
+        ID = newID ()
+        FromDate = DateTime.Now.ToString("yyyyMMdd")
+        Place_ID = ""
+        Product_ID = ""
+    }
+
 module Encode =
 
     let energy (ene : Energy) =
@@ -251,6 +265,15 @@ module Encode =
             "Product_ID", (Encode.string pr.Product_ID)
             "PriceType", (Encode.int (Constants.PriceTypeToInt.[pr.PriceType]))
             "EnergyKind", (Encode.int (Constants.EnergyKindToInt.[pr.EnergyKind]))
+        ]
+
+    let placeproduct (pp : PlaceProduct) =
+        Encode.object [
+            "ID", (Encode.string pp.ID)
+            "FromDate", (Encode.string pp.FromDate)
+            "Place_ID", (Encode.string pp.Place_ID)
+            "Product_ID", (Encode.string pp.Product_ID)
+            
         ]
 
 module Decode =
@@ -317,6 +340,15 @@ module Decode =
                 Product_ID = fields.Required.At [ "Product_ID" ] Decode.string
                 PriceType = fields.Required.At [ "PriceType" ] priceType
                 EnergyKind = fields.Required.At [ "EnergyKind" ] energyKind
+            }
+        )
+
+    let placeproduct : Decoder<PlaceProduct> =
+        Decode.object (fun fields -> { 
+                ID = fields.Required.At [ "ID" ] Decode.string
+                FromDate = fields.Required.At [ "FromDate" ] Decode.string
+                Place_ID = fields.Required.At [ "Place_ID" ] Decode.string
+                Product_ID = fields.Required.At [ "Product_ID" ] Decode.string
             }
         )
 
@@ -447,4 +479,24 @@ module Api =
 
         let loadPageNext (fromDate : string) (id: string) (limit: int) =
             get $"{url}/prices/page/next?fromdate={fromDate}&id={id}&limit={limit}" (Decode.list Decode.price)
+
+    module PlaceProducts =
+        let loadAll () =
+            get $"{url}/placeproducts" (Decode.list Decode.placeproduct)
+
+        let saveItem (item : PlaceProduct) = async {
+            let json = Encode.placeproduct item
+            let body = Encode.toString 2 json
+            let! (status, responseText) = Http.post $"{url}/placeproducts" body
+            match status with
+            | 200 -> return Ok item
+            | 201 -> return Ok item
+            | _ -> return makeError status responseText
+        }
+
+        let loadPagePrev (fromDate : string) (id: string) (limit: int) =
+            get $"{url}/placeproducts/page/prev?fromdate={fromDate}&id={id}&limit={limit}" (Decode.list Decode.placeproduct)
+
+        let loadPageNext (fromDate : string) (id: string) (limit: int) =
+            get $"{url}/placeproducts/page/next?fromdate={fromDate}&id={id}&limit={limit}" (Decode.list Decode.placeproduct)
 
