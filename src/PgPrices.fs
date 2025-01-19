@@ -10,20 +10,20 @@ let EditPrice (price: Price) onSave onCancel =
 
     let (value, setValue) = React.useState(price.Value)
     let (fromDate, setFromDate) = React.useState(price.FromDate)
-    let (provider_ID, setProvider_ID) = React.useState(price.Provider_ID)
+    let (product_ID, setProduct_ID) = React.useState(price.Product_ID)
     let (priceType, setPriceType) = React.useState(price.PriceType)
     let (energyKind, setEnergyKind) = React.useState(price.EnergyKind)
-    let (providers, setProviders) = React.useState([])
+    let (products, setProducts) = React.useState([])
 
     React.useEffect((fun () -> (
         async {
-            let! items = Lib.Api.Providers.loadAll()
+            let! items = Lib.Api.Products.loadAll()
             match items with
             | Ok content ->
-                let newProviders = content |> List.map (fun x -> x.ID, x.Name)
-                setProviders newProviders
+                let newProducts = content |> List.map (fun x -> x.ID, x.Name)
+                setProducts newProducts
             | Error _ ->
-                setProviders []
+                setProducts []
         } |> Async.StartImmediate
         )), [| |])
 
@@ -33,7 +33,7 @@ let EditPrice (price: Price) onSave onCancel =
         StrField { Name = "fromDate" ; Value = fromDate; HandleChange = setFromDate }
         SelectField { Name = "energyKind" ; Value = Constants.EnergyKindToText[energyKind]; Offer = Constants.EnergyKindSelection; HandleChange = (fun x -> setEnergyKind Constants.TextToEnergyKind[x]) }
         SelectField { Name = "priceType" ; Value = Constants.PriceTypeToText[priceType]; Offer = Constants.PriceTypeSelection; HandleChange = (fun x -> setPriceType Constants.TextToPriceType[x]) }
-        SelectField { Name = "provider_ID" ; Value = provider_ID; Offer = providers; HandleChange = setProvider_ID }
+        SelectField { Name = "product_ID" ; Value = product_ID; Offer = products; HandleChange = setProduct_ID }
     ]
 
     let handleSave () = 
@@ -41,7 +41,7 @@ let EditPrice (price: Price) onSave onCancel =
             price with
                 Value = value
                 FromDate = fromDate
-                Provider_ID = provider_ID
+                Product_ID = product_ID
                 PriceType = priceType
                 EnergyKind = energyKind }
 
@@ -51,22 +51,22 @@ let EditPrice (price: Price) onSave onCancel =
 [<ReactComponent>]
 let PgPrices() =
 
-    let (providers, setProviders) = React.useState(Map.empty)
+    let (products, setProducts) = React.useState(Map.empty)
 
     React.useEffect((fun () -> 
         async {
-            let! items = Api.Providers.loadAll()
+            let! items = Api.Products.loadAll()
             match items with
             | Ok content -> 
-                Dbg.wl $"providers: {content}"
-                let newProviders = content |> List.map (fun x -> x.ID, x.Name) |> Map.ofList
-                setProviders newProviders
+                Dbg.wl $"products: {content}"
+                let newProducts = content |> List.map (fun x -> x.ID, x.Name) |> Map.ofList
+                setProducts newProducts
             | Error _ -> 
-                setProviders Map.empty
+                setProducts Map.empty
         } |> Async.StartImmediate
     ), [||])
 
-    let memoizedProviders = React.useMemo((fun () -> providers), [| providers |])
+    let memoizedProducts = React.useMemo((fun () -> products), [| products |])
 
     let fetchBefore (price: Price option) count =
         let fromDate, id =
@@ -87,10 +87,10 @@ let PgPrices() =
             Headers = [
                 { Label = "value" ; FlexBasis = 20; DataGetter = fun (item: Price) -> item.Value.ToString() }
                 { Label = "fromDate" ; FlexBasis = 20; DataGetter = fun (item: Price) -> item.FromDate }
-                { Label = "provider_ID" ; FlexBasis = 30; DataGetter = fun (item: Price) -> 
-                    match Map.tryFind item.Provider_ID memoizedProviders with
+                { Label = "product_ID" ; FlexBasis = 30; DataGetter = fun (item: Price) -> 
+                    match Map.tryFind item.Product_ID memoizedProducts with
                     | Some name -> name
-                    | None -> "Unknown Provider" }
+                    | None -> "Unknown Product" }
                 { Label = "priceType" ; FlexBasis = 30; DataGetter = fun (item: Price) -> Constants.PriceTypeToText[item.PriceType] }
                 { Label = "kind" ; FlexBasis = 30; DataGetter = fun (item: Price) -> Constants.EnergyKindToText[item.EnergyKind] }
             ]

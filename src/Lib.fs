@@ -51,7 +51,7 @@ type Price = {
     ID: string
     Value: int
     FromDate: string
-    Provider_ID: string
+    Product_ID: string
     PriceType: PriceType
     EnergyKind: EnergyKind
 }
@@ -206,7 +206,7 @@ module Utils =
         ID = newID ()
         Value = 0
         FromDate = DateTime.Now.ToString("yyyyMMdd")
-        Provider_ID = ""
+        Product_ID = ""
         PriceType = PriceType.Volume
         EnergyKind = EnergyKind.ElektricityNT
     }
@@ -248,7 +248,7 @@ module Encode =
             "ID", (Encode.string pr.ID)
             "Value", (Encode.int pr.Value)
             "FromDate", (Encode.string pr.FromDate)
-            "Provider_ID", (Encode.string pr.Provider_ID)
+            "Product_ID", (Encode.string pr.Product_ID)
             "PriceType", (Encode.int (Constants.PriceTypeToInt.[pr.PriceType]))
             "EnergyKind", (Encode.int (Constants.EnergyKindToInt.[pr.EnergyKind]))
         ]
@@ -314,7 +314,7 @@ module Decode =
                 ID = fields.Required.At [ "ID" ] Decode.string
                 Value = fields.Required.At [ "Value" ] Decode.int
                 FromDate = fields.Required.At [ "FromDate" ] Decode.string
-                Provider_ID = fields.Required.At [ "Provider_ID" ] Decode.string
+                Product_ID = fields.Required.At [ "Product_ID" ] Decode.string
                 PriceType = fields.Required.At [ "PriceType" ] priceType
                 EnergyKind = fields.Required.At [ "EnergyKind" ] energyKind
             }
