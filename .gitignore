@@ -4,6 +4,7 @@ node_modules/
 src/*.js
 
 *.js
+!webcomponents/*.js
 *.html
 !index.html
 

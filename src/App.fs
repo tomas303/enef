@@ -8,6 +8,7 @@ open PgProviders
 open PgProducts
 open PgPrices
 open PgPlaceProducts
+open PgTest
 
 [<RequireQualifiedAccess>]
 type Page =
@@ -19,6 +20,7 @@ type Page =
     | Products
     | Prices
     | PlaceProducts
+    | Test
     
 let renderMenuNavItem (label : string) (handler : unit -> unit) =
     Html.a [
@@ -47,7 +49,7 @@ let App () =
         renderMenuNavItem "Products" (fun _ -> setCurrentPage Page.Products)
         renderMenuNavItem "Prices" (fun _ -> setCurrentPage Page.Prices)
         renderMenuNavItem "PlaceProducts" (fun _ -> setCurrentPage Page.PlaceProducts)
-    ]
+        renderMenuNavItem "Test" (fun _ -> setCurrentPage Page.Test)]
 
     let page =
         match currentPage with
@@ -59,6 +61,7 @@ let App () =
         | Page.Products -> PgProducts ()
         | Page.Prices -> PgPrices ()
         | Page.PlaceProducts -> PgPlaceProducts ()
+        | Page.Test -> PgTest ()
 
     Html.div [
         prop.classes [ "layout-container" ]
