@@ -4,7 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Extensions.fs" />
+    <Compile Include="Extensions.fs" /><Compile Include="CustomElements.fs" />
     <Compile Include="Lib.fs" />
     <Compile Include="WgEdit.fs" />
     <Compile Include="WgList.fs" />
