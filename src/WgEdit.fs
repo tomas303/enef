@@ -3,6 +3,7 @@ module WgEdit
 open System
 open Feliz
 open Elmish
+open CustomElements
 
 
 type FieldType =
@@ -47,11 +48,16 @@ type Field =
 
 [<ReactComponent>]
 let WgStr (value : string) (onChange : string -> unit) =
-    Html.input [
+    // Html.input [
+    //     prop.classes [ "edit-item" ]
+    //     prop.type' "text"
+    //     prop.value value
+    //     prop.onChange onChange
+    // ]
+    Html.xtext [
         prop.classes [ "edit-item" ]
-        prop.type' "text"
         prop.value value
-        prop.onChange onChange
+        prop.onXChange onChange  // Use custom onChange for web components
     ]
 
 

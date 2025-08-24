@@ -84,9 +84,15 @@ class XText extends HTMLElement {
   _syncFromAttribute(name) {
     if (name === 'value') {
       const v = this.getAttribute('value') || '';
-      if (this._editor.innerText !== v) this._editor.innerText = v;
+      if (this._editor.innerText !== v) {
+        this._editor.innerText = v;
+        // Only update _lastValue when syncing from external source (not user input)
+        // We can detect this by checking if we're currently focused
+        if (!this._editor.matches(':focus')) {
+          this._lastValue = v;
+        }
+      }
       this._updatePlaceholder();
-      this._lastValue = this._editor.innerText;
     }
     if (name === 'placeholder') {
       this._placeholder.textContent = this.getAttribute('placeholder') || '';

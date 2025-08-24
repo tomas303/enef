@@ -21,7 +21,16 @@ let PgTest() =
             Html.xtext [
                 prop.value "Full control"
                 prop.placeholder "Custom placeholder"
-                prop.disabled true
+                // prop.disabled true
+                // prop.onChange (fun (val: string) -> Browser.Dom.console.log "Input changed!")
+                // prop.onChange ( fun (e: Browser.Types.Event) -> Browser.Dom.console.log "xtext changed!")
+                // prop.onInput ( fun (e: Browser.Types.Event) -> Browser.Dom.console.log "xtext input changed!")
+                // prop.onTextChange ( fun (text: string) -> Browser.Dom.console.log $"xtext onTextChange: {text}" )
+                prop.onXChange ( fun (v: string) -> Browser.Dom.console.log $"xtext onTextChange: {v}")
+                // prop.onInput(fun (e: Browser.Types.Event) -> 
+                //     let target = e.target :?> Browser.Types.HTMLElement
+                //     let value = target?value
+                //     Browser.Dom.console.log value)
             ]
         ]
     ]
