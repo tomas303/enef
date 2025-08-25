@@ -9,26 +9,6 @@ type Html with
     static member xtext (props: IReactProperty list) =
         Interop.reactApi.createElement("x-text", createObj !!props)
     
-    /// Custom text input with just a value
-    static member xtext (value: string) =
-        Html.xtext [ prop.value value ]
-    
-    /// Custom text input with value and placeholder
-    static member xtext (value: string, placeholder: string) =
-        Html.xtext [ 
-            prop.value value
-            prop.placeholder placeholder 
-        ]
-    
-    /// Custom text input with value and change handler
-    static member xtext (value: string, onChange: string -> unit) =
-        Html.xtext [
-            prop.value value
-            prop.custom("onInput", fun (e: Browser.Types.Event) -> 
-                let target = e.target :?> Browser.Types.HTMLElement
-                onChange target?value)
-        ]
-
 
 // Add custom prop extensions here only when you need properties that don't exist in Feliz
 // Custom event handlers for web components
