@@ -77,6 +77,11 @@ class XNumber extends XInputBase {
         margin: 0;
         font: inherit;
         line-height: inherit;
+        min-height: 1.2em;
+      }
+      .integer-part:empty::before {
+        content: "\\00a0";
+        color: transparent;
       }
       .decimal-separator {
         color: #666;
@@ -94,6 +99,7 @@ class XNumber extends XInputBase {
         margin: 0;
         font: inherit;
         line-height: inherit;
+        min-height: 1.2em;
       }
       .decimal-part:empty::before {
         content: "\\00a0";
@@ -258,6 +264,38 @@ class XNumber extends XInputBase {
   };
 
   _onIntegerKeyDown = (e) => {
+    // Handle seamless dot typing - move to decimal part
+    if (e.key === '.' || e.key === ',') {
+      const decimalPlaces = parseInt(this.getAttribute('decimal-places') || '0');
+      if (decimalPlaces > 0) {
+        e.preventDefault();
+        this._decimalPart.focus();
+        this._setCaretPosition(this._decimalPart, 0);
+        return;
+      }
+    }
+    
+    // Handle seamless delete - move to decimal part when integer is deleted
+    if (e.key === 'Delete') {
+      const caretPos = this._getCaretPosition(this._integerPart);
+      const integerText = this._integerPart.innerText;
+      const decimalPlaces = parseInt(this.getAttribute('decimal-places') || '0');
+      
+      // If at end of integer part and about to delete (or integer is empty), move to decimal
+      if (decimalPlaces > 0 && (caretPos >= integerText.length || integerText.length === 0)) {
+        e.preventDefault();
+        this._decimalPart.focus();
+        this._setCaretPosition(this._decimalPart, 0);
+        // Simulate delete in decimal part if it has content
+        if (this._decimalPart.innerText.length > 0) {
+          const firstChar = this._decimalPart.innerText.charAt(0);
+          this._decimalPart.innerText = this._decimalPart.innerText.substring(1);
+          this._onDecimalInput({ target: this._decimalPart });
+        }
+        return;
+      }
+    }
+    
     // Allow navigation to decimal part with arrow keys
     if (e.key === 'ArrowRight' && this._getCaretPosition(this._integerPart) === this._integerPart.innerText.length) {
       const decimalPlaces = parseInt(this.getAttribute('decimal-places') || '0');
@@ -272,7 +310,28 @@ class XNumber extends XInputBase {
   };
 
   _onDecimalKeyDown = (e) => {
-    // Allow navigation back to integer part
+    // Handle seamless backspace - move to integer part when decimal is deleted
+    if (e.key === 'Backspace') {
+      const caretPos = this._getCaretPosition(this._decimalPart);
+      const decimalText = this._decimalPart.innerText;
+      
+      // If at beginning of decimal part and about to backspace (or decimal is empty), move to integer
+      if (caretPos === 0 || decimalText.length === 0) {
+        e.preventDefault();
+        this._integerPart.focus();
+        const integerText = this._integerPart.innerText;
+        this._setCaretPosition(this._integerPart, integerText.length);
+        // Simulate backspace in integer part if it has content
+        if (integerText.length > 0) {
+          this._integerPart.innerText = integerText.slice(0, -1);
+          this._setCaretPosition(this._integerPart, this._integerPart.innerText.length);
+          this._onInput({ target: this._integerPart });
+        }
+        return;
+      }
+    }
+    
+    // Allow navigation back to integer part with arrow keys
     if (e.key === 'ArrowLeft' && this._getCaretPosition(this._decimalPart) === 0) {
       e.preventDefault();
       this._integerPart.focus();
