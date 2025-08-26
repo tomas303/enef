@@ -49,6 +49,14 @@ type prop with
             match System.Double.TryParse(string value) with
             | true, floatValue -> handler floatValue
             | false, _ -> ()) // Ignore invalid floats
+    
+    /// Custom onXChange handler for boolean values
+    static member onXChange (handler: bool -> unit) = 
+        prop.onInput(fun (e: Browser.Types.Event) -> 
+            let target = e.target :?> Browser.Types.HTMLElement
+            let value = target?value
+            let boolValue = string value = "true"
+            handler boolValue)
 
 // Extension methods to add custom components directly to Html module
 type Html with
@@ -63,6 +71,10 @@ type Html with
     /// Custom date input component with day/month/year parts
     static member xdate (props: IReactProperty list) =
         Interop.reactApi.createElement("x-date", createObj !!props)
+    
+    /// Custom boolean input component with O/X display
+    static member xboolean (props: IReactProperty list) =
+        Interop.reactApi.createElement("x-boolean", createObj !!props)
     
     /// Custom number input with just a value (integer only)
     static member xnumber (value: int) =
@@ -85,3 +97,7 @@ type Html with
             prop.value value
             prop.format format
         ]
+    
+    /// Custom boolean input with boolean value
+    static member xboolean (value: bool) =
+        Html.xboolean [ prop.value (if value then "true" else "false") ]

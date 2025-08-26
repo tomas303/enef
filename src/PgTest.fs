@@ -34,5 +34,9 @@ let PgTest() =
                 prop.placeholder "Select a date"
                 prop.onXChange ( fun (v: string) -> Browser.Dom.console.log $"xdate onDateChange: {v}")
             ]
+            Html.xboolean [
+                prop.value true
+                prop.onXChange ( fun (v: bool) -> Browser.Dom.console.log $"xboolean onBooleanChange: {v}")
+            ]
         ]
     ]
