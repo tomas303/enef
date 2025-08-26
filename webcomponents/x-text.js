@@ -4,27 +4,29 @@ import { XInputBase } from './x-input-base.js';
 class XText extends XInputBase {
   constructor() {
     super();
+    console.log('XText constructor called');
   }
 
   _createStructure(shadow) {
-    // wrapper for positioning placeholder
+    console.log('XText _createStructure called');
+    // wrapper for positioning
     this._wrapper = document.createElement('div');
     this._wrapper.className = 'wrapper';
 
-    // editable surface (no native <input>)
+    // editor
     this._editor = document.createElement('div');
     this._editor.setAttribute('role', 'textbox');
     this._editor.tabIndex = 0;
     this._editor.contentEditable = 'true';
     this._editor.className = 'editable';
 
-    // placeholder element
-    this._placeholder = document.createElement('div');
-    this._placeholder.className = 'placeholder';
-    this._placeholder.setAttribute('aria-hidden', 'true');
-
-    this._wrapper.append(this._placeholder, this._editor);
+    this._wrapper.append(this._editor);
     shadow.append(this._wrapper);
+    
+    console.log('XText structure created:', {
+      wrapper: !!this._wrapper,
+      editor: !!this._editor
+    });
   }
 
   _addEventListeners() {
@@ -59,16 +61,6 @@ class XText extends XInputBase {
     this._editor.setAttribute('aria-disabled', String(disabled));
   }
 
-  _restoreCursor() {
-    // Simple cursor restoration - put at end
-    const range = document.createRange();
-    const selection = window.getSelection();
-    range.selectNodeContents(this._editor);
-    range.collapse(false);
-    selection.removeAllRanges();
-    selection.addRange(range);
-  }
-
   focus() {
     this._editor.focus();
   }
@@ -76,8 +68,6 @@ class XText extends XInputBase {
   blur() {
     this._editor.blur();
   }
-
-  // No additional validation needed for text input - base class handles it
 }
 
 customElements.define('x-text', XText);

@@ -4,14 +4,16 @@ import { XInputBase } from './x-input-base.js';
 class XNumber extends XInputBase {
   constructor() {
     super();
+    console.log('XNumber constructor called');
   }
 
   static get observedAttributes() {
     return ['value', 'disabled', 'placeholder', 'decimal-places'];
   }
 
-  _createStructure(shadow) {
-    // wrapper for positioning placeholder
+    _createStructure(shadow) {
+    console.log('XNumber _createStructure called');
+    // wrapper for positioning
     this._wrapper = document.createElement('div');
     this._wrapper.className = 'wrapper';
 
@@ -19,36 +21,39 @@ class XNumber extends XInputBase {
     this._numberContainer = document.createElement('div');
     this._numberContainer.className = 'number-container';
 
-    // Integer part (before decimal)
+    // Integer part
     this._integerPart = document.createElement('div');
     this._integerPart.setAttribute('role', 'textbox');
     this._integerPart.tabIndex = 0;
     this._integerPart.contentEditable = 'true';
     this._integerPart.className = 'editable integer-part';
 
-    // Decimal separator (fixed dot)
+    // Decimal separator (dot)
     this._decimalSeparator = document.createElement('span');
     this._decimalSeparator.className = 'decimal-separator';
     this._decimalSeparator.textContent = '.';
 
-    // Decimal part (after decimal)
+    // Decimal part
     this._decimalPart = document.createElement('div');
     this._decimalPart.setAttribute('role', 'textbox');
-    this._decimalPart.tabIndex = -1; // Not directly tabbable
     this._decimalPart.contentEditable = 'true';
     this._decimalPart.className = 'editable decimal-part';
 
-    // placeholder element
-    this._placeholder = document.createElement('div');
-    this._placeholder.className = 'placeholder';
-    this._placeholder.setAttribute('aria-hidden', 'true');
-
+    // Assemble the structure
     this._numberContainer.append(this._integerPart, this._decimalSeparator, this._decimalPart);
-    this._wrapper.append(this._placeholder, this._numberContainer);
+    this._wrapper.append(this._numberContainer);
     shadow.append(this._wrapper);
 
     // Set the main editor reference to integer part for base class compatibility
     this._editor = this._integerPart;
+    
+    console.log('XNumber structure created:', {
+      wrapper: !!this._wrapper,
+      container: !!this._numberContainer,
+      integer: !!this._integerPart,
+      decimal: !!this._decimalPart,
+      placeholder: !!this._placeholder
+    });
   }
 
   _getCustomStyles() {
@@ -56,7 +61,7 @@ class XNumber extends XInputBase {
       .number-container {
         display: flex;
         align-items: baseline;
-        min-width: 6ch;
+        min-width: 2ch;
         min-height: 1.5em;
         padding: 0.5em;
         border: 1px solid #ccc;

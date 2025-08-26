@@ -28,5 +28,11 @@ let PgTest() =
                 prop.decimalPlaces 2
                 prop.onXChange ( fun (v: float) -> Browser.Dom.console.log $"xnumber onNumberChange: {v}")
             ]
+            Html.xdate [
+                prop.value "2024-06-15"
+                prop.format "dd.mm.yyyy"
+                prop.placeholder "Select a date"
+                prop.onXChange ( fun (v: string) -> Browser.Dom.console.log $"xdate onDateChange: {v}")
+            ]
         ]
     ]
