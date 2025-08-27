@@ -7,6 +7,8 @@ open CustomElements
 
 [<ReactComponent>]
 let PgTest() =
+    let selectedCountry, setSelectedCountry = React.useState("country2")
+    
     Html.div [
         prop.children [
             Html.h1 "Test Page"
@@ -37,6 +39,18 @@ let PgTest() =
             Html.xboolean [
                 prop.value true
                 prop.onXChange ( fun (v: bool) -> Browser.Dom.console.log $"xboolean onBooleanChange: {v}")
+            ]
+            Html.p $"Current selection: {selectedCountry}"
+            Html.xselect [
+                prop.value selectedCountry
+                prop.options [  
+                        ("country1", "United States")
+                        ("country2", "Germany") 
+                        ("country3", "France") 
+                    ]
+                prop.onXChange (fun (v: string) -> 
+                    Browser.Dom.console.log $"xselect onSelectChange: {v}"
+                    setSelectedCountry v)
             ]
         ]
     ]

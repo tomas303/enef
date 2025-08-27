@@ -20,6 +20,14 @@ type prop with
     /// Custom property for year in x-date component
     static member year (year: int) = prop.custom("year", year)
     
+    /// Custom property for options in x-select component (list of value-text pairs)
+    static member options (options: (string * string) list) = 
+        let jsonOptions = 
+            options 
+            |> List.map (fun (value, text) -> {| value = value; text = text |})
+            |> Fable.Core.JS.JSON.stringify
+        prop.custom("options", jsonOptions)
+    
     /// <summary>
     /// in react onChange is not called for web components, so we create onXChange(some peculiarity of its
     /// syntetic event system - for known text inputs element it does similarly )
@@ -76,6 +84,10 @@ type Html with
     static member xboolean (props: IReactProperty list) =
         Interop.reactApi.createElement("x-boolean", createObj !!props)
     
+    /// Custom select input component with filtering and dropdown
+    static member xselect (props: IReactProperty list) =
+        Interop.reactApi.createElement("x-select", createObj !!props)
+    
     /// Custom number input with just a value (integer only)
     static member xnumber (value: int) =
         Html.xnumber [ prop.value (string value) ]
@@ -101,3 +113,10 @@ type Html with
     /// Custom boolean input with boolean value
     static member xboolean (value: bool) =
         Html.xboolean [ prop.value (if value then "true" else "false") ]
+    
+    /// Custom select input with options and value
+    static member xselect (value: string, options: (string * string) list) =
+        Html.xselect [
+            prop.value value
+            prop.options options
+        ]
