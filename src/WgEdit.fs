@@ -48,65 +48,48 @@ type Field =
 
 [<ReactComponent>]
 let WgStr (value : string) (onChange : string -> unit) =
-    // Html.input [
-    //     prop.classes [ "edit-item" ]
-    //     prop.type' "text"
-    //     prop.value value
-    //     prop.onChange onChange
-    // ]
     Html.xtext [
         prop.classes [ "edit-item" ]
         prop.value value
         prop.onXChange onChange  // Use custom onChange for web components
     ]
 
-
 [<ReactComponent>]
 let WgInt (value : int) (onChange : int -> unit) =
-    Html.input [
+    Html.xnumber [
         prop.classes [ "edit-item" ]
-        prop.type' "number"
         prop.value value
-        prop.onChange onChange
+        prop.onXChange onChange  // Use custom onChange for web components
     ]
-
 
 [<ReactComponent>]
 let WgBool (value : bool) (onChange : bool -> unit) =
-    Html.input [
+    Html.xboolean [
         prop.classes [ "edit-item" ]
-        prop.type' "checkbox"
         prop.value value
-        prop.onChange onChange
+        prop.onXChange onChange  // Use custom onChange for web components
     ]
-
 
 [<ReactComponent>]
 let WgDateTime (value : DateTime) (onChange : DateTime -> unit) =
-    Html.input [
+    Html.xdate [
         prop.classes [ "edit-item" ]
-        prop.type' "date"
-        prop.value value
-        prop.onChange onChange
+        prop.format "dd.mm.yyyy"
+        prop.value (value.ToString("yyyy-MM-dd")) // Convert DateTime to ISO string (YYYY-MM-DD)
+        prop.onXChange (fun (isoString: string) -> 
+            match DateTime.TryParse(isoString) with
+            | true, dt -> onChange dt
+            | false, _ -> ())
     ]
-
 
 [<ReactComponent>]
 let WgSelect (selectedId: string) (onSelect: string -> unit) (items: (string * string) list) =
-    Html.select [
+    Html.xselect [
+        prop.classes [ "edit-item" ]
         prop.value selectedId
-        prop.onChange onSelect
-        prop.children (
-            items |> List.map (fun (id, name) ->
-                Lib.Dbg.wl $"id: {id} name: {name}"
-                Html.option [
-                    prop.value id
-                    prop.text name
-                ]
-            )
-        )
+        prop.options items
+        prop.onXChange onSelect
     ]
-
 
 [<ReactComponent>]
 let WgEdit fields onSave onCancel =
