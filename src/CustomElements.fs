@@ -28,6 +28,9 @@ type prop with
             |> Fable.Core.JS.JSON.stringify
         prop.custom("options", jsonOptions)
     
+    /// Custom property for button text in x-button component
+    static member buttonText (text: string) = prop.custom("text", text)
+    
     /// <summary>
     /// in react onChange is not called for web components, so we create onXChange(some peculiarity of its
     /// syntetic event system - for known text inputs element it does similarly )
@@ -88,6 +91,10 @@ type Html with
     static member xselect (props: IReactProperty list) =
         Interop.reactApi.createElement("x-select", createObj !!props)
     
+    /// Custom button component with consistent styling
+    static member xbutton (props: IReactProperty list) =
+        Interop.reactApi.createElement("x-button", createObj !!props)
+    
     /// Custom number input with just a value (integer only)
     static member xnumber (value: int) =
         Html.xnumber [ prop.value (string value) ]
@@ -119,4 +126,11 @@ type Html with
         Html.xselect [
             prop.value value
             prop.options options
+        ]
+    
+    /// Custom button with text and click handler
+    static member xbutton (text: string, onClick: unit -> unit) =
+        Html.xbutton [
+            prop.buttonText text
+            prop.onClick (fun _ -> onClick())
         ]

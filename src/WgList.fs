@@ -2,6 +2,7 @@ module WgList
 
 open Feliz
 open Feliz.UseListener
+open CustomElements
 
 type WgListHeader<'T> = {
     Label: string
@@ -78,23 +79,23 @@ let WgList (props:{|
         | _ -> ()
     )
 
-    let prev = Html.button [
-        prop.text "Prev"
+    let prev = Html.xbutton [
+        prop.buttonText "Prev"
         prop.onClick (fun _ -> props.OnPageUp())
         prop.disabled (not props.IsBrowsing)
     ]
-    let next = Html.button [
-        prop.text "Next"
+    let next = Html.xbutton [
+        prop.buttonText "Next"
         prop.onClick (fun _ -> props.OnPageDown())
         prop.disabled (not props.IsBrowsing)
     ]
-    let add = Html.button [
-        prop.text "Add"
+    let add = Html.xbutton [
+        prop.buttonText "Add"
         prop.onClick (fun _ -> props.OnAdd())
         prop.disabled (not props.IsBrowsing)
     ]
-    let edit = Html.button [
-        prop.text "Edit"
+    let edit = Html.xbutton [
+        prop.buttonText "Edit"
         prop.onClick (fun _ -> props.OnEdit())
         prop.disabled (not props.IsBrowsing)
     ]

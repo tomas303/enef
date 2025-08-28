@@ -40,6 +40,12 @@ let PgTest() =
                 prop.value true
                 prop.onXChange ( fun (v: bool) -> Browser.Dom.console.log $"xboolean onBooleanChange: {v}")
             ]
+            Html.xbutton [
+                prop.buttonText "Custom Button"
+                prop.onClick (fun _ -> Browser.Dom.console.log "Custom button clicked!" )
+            ]
+            // Test with direct attribute
+            Interop.reactApi.createElement("x-button", {| text = "Direct Button"; onClick = fun _ -> Browser.Dom.console.log "Direct button!" |})
             Html.p $"Current selection: {selectedCountry}"
             Html.xselect [
                 prop.value selectedCountry
