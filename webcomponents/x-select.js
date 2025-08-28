@@ -8,6 +8,7 @@ class XSelect extends XInputBase {
     this._filteredOptions = [];
     this._selectedIndex = -1;
     this._isOpen = false;
+    this._suggestionTimeout = null;
   }
 
   static get observedAttributes() {
@@ -233,11 +234,30 @@ class XSelect extends XInputBase {
     
     this._updateDropdown();
     
-    // Only show dropdown if it's already open (don't auto-open on typing)
-    if (this._isOpen) {
-      this._highlightOption();
+    // Trigger auto-popup after delay if user typed something
+    if (filterText.length >= 1) {
+      this._triggerAutoPopup(filterText);
+    } else {
+      this._hideDropdown();
     }
   };
+
+  _triggerAutoPopup(filterText) {
+    // Clear existing timeout
+    if (this._suggestionTimeout) {
+      clearTimeout(this._suggestionTimeout);
+    }
+    
+    console.log('Triggering auto-popup for:', filterText);
+    
+    // Set new timeout for auto-popup
+    this._suggestionTimeout = setTimeout(() => {
+      console.log('Showing auto-popup with', this._filteredOptions.length, 'options');
+      if (this._filteredOptions.length > 0 && !this._isOpen) {
+        this._showDropdown();
+      }
+    }, 300); // 300ms delay
+  }
 
   _onFocus = (e) => {
     // Don't show dropdown on focus - only on manual trigger
@@ -367,6 +387,12 @@ class XSelect extends XInputBase {
     this._dropdown.classList.add('hidden');
     this._editor.setAttribute('aria-expanded', 'false');
     this._selectedIndex = -1;
+    
+    // Clear auto-popup timeout
+    if (this._suggestionTimeout) {
+      clearTimeout(this._suggestionTimeout);
+      this._suggestionTimeout = null;
+    }
   }
 
   _toggleDropdown() {
