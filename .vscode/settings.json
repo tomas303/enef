@@ -1,3 +1,8 @@
 {
-    "FSharp.inlayHints.parameterNames": false
+    "FSharp.inlayHints.parameterNames": false,
+    "[fsharp]": {
+        "editor.inlayHints.enabled": "off"
+    },
+    "FSharp.lineLens.enabled": "never",
+    "editor.codeLens": false
 }
