@@ -4,5 +4,6 @@
         "editor.inlayHints.enabled": "off"
     },
     "FSharp.lineLens.enabled": "never",
-    "editor.codeLens": false
+    "editor.codeLens": false,
+    "github.copilot.nextEditSuggestions.enabled": false
 }
