@@ -1,0 +1,233 @@
+/* Commander Panel Styles - Enhanced for flexible layouts */
+
+.commander-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: 1px solid #ccc;
+  background: white;
+}
+
+.commander-title {
+  background: #f0f0f0;
+  border-bottom: 1px solid #ccc;
+  padding: 0.5em;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* Content area with different layouts */
+.commander-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+}
+
+/* Single panel - just the list */
+.commander-single {
+  flex-direction: column;
+}
+
+.commander-single .commander-list-panel {
+  flex: 1;
+  overflow: auto;
+}
+
+/* Split Right - List | Edit */
+.commander-split-right {
+  flex-direction: row;
+}
+
+.commander-split-right .commander-list-panel {
+  flex: 1;
+  overflow: auto;
+  border-right: 1px solid #ccc;
+}
+
+.commander-split-right .commander-edit-panel {
+  width: 400px;
+  min-width: 300px;
+  max-width: 50%;
+  overflow: auto;
+}
+
+/* Split Left - Edit | List */
+.commander-split-left {
+  flex-direction: row;
+}
+
+.commander-split-left .commander-edit-panel {
+  width: 400px;
+  min-width: 300px;
+  max-width: 50%;
+  border-right: 1px solid #ccc;
+  overflow: auto;
+}
+
+.commander-split-left .commander-list-panel {
+  flex: 1;
+  overflow: auto;
+}
+
+/* Split Top - Edit above List */
+.commander-split-top {
+  flex-direction: column;
+}
+
+.commander-split-top .commander-edit-panel {
+  height: 300px;
+  min-height: 200px;
+  max-height: 50%;
+  border-bottom: 1px solid #ccc;
+  overflow: auto;
+}
+
+.commander-split-top .commander-list-panel {
+  flex: 1;
+  overflow: auto;
+}
+
+/* Split Bottom - List above Edit */
+.commander-split-bottom {
+  flex-direction: column;
+}
+
+.commander-split-bottom .commander-list-panel {
+  flex: 1;
+  overflow: auto;
+  border-bottom: 1px solid #ccc;
+}
+
+.commander-split-bottom .commander-edit-panel {
+  height: 300px;
+  min-height: 200px;
+  max-height: 50%;
+  overflow: auto;
+}
+
+/* Overlay - Edit overlays List (mobile-friendly) */
+.commander-overlay {
+  position: relative;
+}
+
+.commander-overlay .commander-list-panel {
+  flex: 1;
+  overflow: auto;
+}
+
+.commander-overlay .commander-edit-panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: white;
+  border: 2px solid #666;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  z-index: 1000;
+  margin: 1em;
+  overflow: auto;
+}
+
+/* Edit panel styling */
+.commander-edit-panel {
+  display: flex;
+  flex-direction: column;
+  background: white;
+}
+
+.commander-edit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5em;
+  background: #f8f8f8;
+  border-bottom: 1px solid #ddd;
+  font-weight: bold;
+}
+
+.commander-close-btn {
+  min-width: 2em !important;
+  padding: 0.25em 0.5em !important;
+  margin-left: 1em;
+}
+
+.commander-edit-content {
+  flex: 1;
+  padding: 1em;
+  overflow: auto;
+}
+
+/* Button bar */
+.commander-button-bar {
+  display: flex;
+  border-top: 1px solid #ccc;
+  background: #f8f8f8;
+  padding: 0.25em;
+  gap: 0.25em;
+  flex-wrap: wrap;
+}
+
+.commander-button {
+  flex: 1;
+  min-width: 80px;
+  font-size: 0.9em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Responsive behavior */
+@media (max-width: 768px) {
+  /* Force overlay mode on mobile */
+  .commander-split-right,
+  .commander-split-left,
+  .commander-split-top,
+  .commander-split-bottom {
+    flex-direction: column;
+    position: relative;
+  }
+  
+  .commander-split-right .commander-edit-panel,
+  .commander-split-left .commander-edit-panel,
+  .commander-split-top .commander-edit-panel,
+  .commander-split-bottom .commander-edit-panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    height: auto;
+    max-width: none;
+    max-height: none;
+    min-width: 0;
+    min-height: 0;
+    background: white;
+    border: 2px solid #666;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    z-index: 1000;
+    margin: 0.5em;
+  }
+  
+  .commander-button-bar {
+    flex-direction: column;
+  }
+  
+  .commander-button {
+    flex: none;
+  }
+}
+
+/* Resizable panels (future enhancement) */
+.commander-resizer {
+  background: #ddd;
+  cursor: col-resize;
+  width: 4px;
+}
+
+.commander-resizer:hover {
+  background: #bbb;
+}
