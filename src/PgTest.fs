@@ -3,7 +3,7 @@ module PgTest
 open Feliz
 open Fable.Core.JsInterop
 open CustomElements
-// open Fable.React
+open ExampleUsage
 
 [<ReactComponent>]
 let PgTest() =
@@ -58,5 +58,12 @@ let PgTest() =
                     Browser.Dom.console.log $"xselect onSelectChange: {v}"
                     setSelectedCountry v)
             ]
+            Html.div [
+                MyDataManager()
+            ]
+            Html.div [
+                LayoutShowcase()
+            ]
+           
         ]
     ]

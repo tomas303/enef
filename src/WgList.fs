@@ -53,15 +53,8 @@ let WgListGrid (rows: ReactElement list) =
 let WgList (props:{|
         Structure: WgListStructure<'T>
         Rows: (string * string list) list
-        IsBrowsing: bool
         RowCount: int
         Cursor: int
-        OnPageUp: unit -> unit
-        OnPageDown: unit -> unit
-        OnRowUp: unit -> unit
-        OnRowDown: unit -> unit
-        OnAdd: unit -> unit
-        OnEdit: unit -> unit
     |}) =
 
 
@@ -69,36 +62,6 @@ let WgList (props:{|
         if active
         then WgListCell "cursor" ">" 5
         else WgListCell "cursor" " " 5
-
-    React.useListener.onKeyDown(fun ev ->
-        match ev.key with
-        | "PageUp" -> props.OnPageUp(); ev.preventDefault()
-        | "PageDown" -> props.OnPageDown(); ev.preventDefault()
-        | "ArrowUp" -> props.OnRowUp(); ev.preventDefault()
-        | "ArrowDown" -> props.OnRowDown(); ev.preventDefault()
-        | _ -> ()
-    )
-
-    let prev = Html.xbutton [
-        prop.buttonText "Prev"
-        prop.onClick (fun _ -> props.OnPageUp())
-        prop.disabled (not props.IsBrowsing)
-    ]
-    let next = Html.xbutton [
-        prop.buttonText "Next"
-        prop.onClick (fun _ -> props.OnPageDown())
-        prop.disabled (not props.IsBrowsing)
-    ]
-    let add = Html.xbutton [
-        prop.buttonText "Add"
-        prop.onClick (fun _ -> props.OnAdd())
-        prop.disabled (not props.IsBrowsing)
-    ]
-    let edit = Html.xbutton [
-        prop.buttonText "Edit"
-        prop.onClick (fun _ -> props.OnEdit())
-        prop.disabled (not props.IsBrowsing)
-    ]
 
     let rows = props.Rows |> List.mapi (fun idx (key, row) -> 
         let cells = List.map2 (fun h r -> WgListCell h.Label r h.FlexBasis) props.Structure.Headers row
@@ -112,11 +75,8 @@ let WgList (props:{|
         ]
 
     let allRows = rows @ invrows
-
-    let buttons = Html.div [ prev; next; add; edit ]
-    
+   
     Html.div [
         WgListGrid allRows
-        buttons
     ]
 

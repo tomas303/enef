@@ -2,7 +2,9 @@ module WgAgenda
 
 open Feliz
 open Feliz.UseDeferred
+open Feliz.UseListener
 open WgList
+open CustomElements
 
 module GridBuffer =
 
@@ -142,6 +144,26 @@ type State =
     | Saving
     | Shifting
 
+type AgendaAction = {
+    Key: {| Shortcut: string; Alt: bool |}           // "F2", "F3", etc.
+    Label: string         // "Edit", "View", etc.
+    Handler: unit -> unit
+    Enabled: bool
+}
+
+[<ReactComponent>]
+let WgAgendaButton (action: AgendaAction) =
+    let altPrefix = if action.Key.Alt then "Alt+" else ""
+    let keyLabel = if action.Key.Shortcut.Length > 0 then $" ({altPrefix}{action.Key.Shortcut})" else ""
+    let buttonText = $"{action.Label}{keyLabel}"
+    
+    Html.xbutton [
+        prop.buttonText buttonText
+        prop.onClick (fun _ -> if action.Enabled then action.Handler())
+        prop.disabled (not action.Enabled)
+        prop.classes [ "commander-button" ]
+    ]
+
 [<ReactComponent>]
 let WgAgenda (props:{|
         Structure: WgListStructure<'T>
@@ -218,15 +240,8 @@ let WgAgenda (props:{|
     let listProps = {|
             Structure = props.Structure
             Rows = listRows
-            IsBrowsing = state = State.Browsing
             RowCount = buffer.ViewSize
             Cursor = buffer.Cursor - buffer.Top
-            OnPageUp = fun () -> if state = State.Browsing then setDeltaMove(buffer.ViewSize * -1)
-            OnPageDown = fun () -> if state = State.Browsing then setDeltaMove(buffer.ViewSize)
-            OnRowUp = fun () -> if state = State.Browsing then setDeltaMove(-1)
-            OnRowDown = fun () -> if state = State.Browsing then setDeltaMove(1)
-            OnAdd = fun () -> if state = State.Browsing then setState(State.Adding)
-            OnEdit = fun () -> if state = State.Browsing && GridBuffer.cursorValid buffer then setState(State.Editing)
         |}
 
     let renderEdit =
@@ -241,9 +256,43 @@ let WgAgenda (props:{|
 
         | _ -> Html.none
 
+    let actions: AgendaAction list = [
+        { Key = {| Shortcut = "PageUp"; Alt = false |}; Label = "PgUp"; Handler = (fun () -> if state = State.Browsing then setDeltaMove(buffer.ViewSize * -1)); Enabled = true }
+        { Key = {| Shortcut = "PageDown"; Alt = false |}; Label = "PgDown"; Handler = (fun () -> if state = State.Browsing then setDeltaMove(buffer.ViewSize)); Enabled = true }
+        { Key = {| Shortcut = "ArrowUp"; Alt = false |}; Label = "Up"; Handler = (fun () -> if state = State.Browsing then setDeltaMove(-1)); Enabled = true }
+        { Key = {| Shortcut = "ArrowDown"; Alt = false |}; Label = "Down"; Handler = (fun () -> if state = State.Browsing then setDeltaMove(1)); Enabled = true }
+        { Key = {| Shortcut = "n"; Alt = true |}; Label = "Add"; Handler = (fun () -> if state = State.Browsing then setState(State.Adding)); Enabled = state = State.Browsing }
+        { Key = {| Shortcut = "e"; Alt = true |}; Label = "Edit"; Handler = (fun () -> if state = State.Browsing && GridBuffer.cursorValid buffer then setState(State.Editing)); Enabled = state = State.Browsing && GridBuffer.cursorValid buffer }
+    ]
+
+
+    // Global keyboard handler for function keys
+    React.useListener.onKeyDown(fun ev ->
+        // Only handle function keys
+        let matchingAction = 
+            actions 
+            |> List.tryFind (fun action -> action.Key.Shortcut = ev.key && action.Key.Alt = ev.altKey && action.Enabled)
+        
+        match matchingAction with
+        | Some action -> 
+            ev.preventDefault()
+            action.Handler()
+        | None -> ()
+    )
+
+    let buttonBar = 
+        Html.div [
+            prop.classes [ "commander-button-bar" ]
+            prop.children (
+                actions 
+                |> List.map WgAgendaButton
+            )
+        ]
+
     Html.div [
         renderError ()
         WgList listProps
+        buttonBar
         renderEdit
+        
     ]
-
