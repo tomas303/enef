@@ -5,9 +5,7 @@ open Lib
 open WgEdit
 open WgList
 
-[<ReactComponent>]
-let EditPrice (price: Price) onSave onCancel =
-
+let usePriceEditor (price: Price) =
     let (value, setValue) = React.useState(price.Value)
     let (fromDate, setFromDate) = React.useState(price.FromDate)
     let (product_ID, setProduct_ID) = React.useState(price.Product_ID)
@@ -27,8 +25,7 @@ let EditPrice (price: Price) onSave onCancel =
         } |> Async.StartImmediate
         )), [| |])
 
-
-    let edits = [
+    let fields = [
         IntField { Name = "value" ; Value = value; HandleChange = setValue }
         StrField { Name = "fromDate" ; Value = fromDate; HandleChange = setFromDate }
         SelectField { Name = "energyKind" ; Value = Constants.EnergyKindToText[energyKind]; Offer = Constants.EnergyKindSelection; HandleChange = (fun x -> setEnergyKind Constants.TextToEnergyKind[x]) }
@@ -36,16 +33,15 @@ let EditPrice (price: Price) onSave onCancel =
         SelectField { Name = "product_ID" ; Value = product_ID; Offer = products; HandleChange = setProduct_ID }
     ]
 
-    let handleSave () = 
-        onSave { 
-            price with
-                Value = value
-                FromDate = fromDate
-                Product_ID = product_ID
-                PriceType = priceType
-                EnergyKind = energyKind }
+    let getUpdatedPrice () = 
+        { price with
+            Value = value
+            FromDate = fromDate
+            Product_ID = product_ID
+            PriceType = priceType
+            EnergyKind = energyKind }
 
-    WgEdit edits handleSave onCancel
+    fields, getUpdatedPrice
 
 
 [<ReactComponent>]
@@ -99,7 +95,7 @@ let PgPrices() =
 
     let props = {|
             Structure = structure
-            NewEdit = fun price -> EditPrice price
+            useEditor = fun price -> usePriceEditor price
             ItemNew = fun () -> Utils.newPrice()
             ItemSave = Api.Prices.saveItem
             FetchBefore = fetchBefore

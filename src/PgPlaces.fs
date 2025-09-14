@@ -5,24 +5,21 @@ open Lib
 open WgEdit
 open WgList
 
-[<ReactComponent>]
-let EditPlace place onSave onCancel =
-
+let usePlaceEditor (place: Place) =
     let (circuitBreakerCurrent, setCircuitBreakerCurrent) = React.useState(place.CircuitBreakerCurrent)
     let (name, setName) = React.useState(place.Name)
 
-    let edits = [
+    let fields = [
         StrField { Name = "name" ; Value = name; HandleChange = setName }
         IntField { Name = "circuitBreakerCurrent" ; Value = circuitBreakerCurrent; HandleChange = setCircuitBreakerCurrent }
     ]
 
-    let handleSave () = 
-        onSave { 
-            place with
-                CircuitBreakerCurrent = circuitBreakerCurrent
-                Name = name}
+    let getUpdatedPlace () = 
+        { place with
+            CircuitBreakerCurrent = circuitBreakerCurrent
+            Name = name }
 
-    WgEdit edits handleSave onCancel
+    fields, getUpdatedPlace
 
 
 [<ReactComponent>]
@@ -53,7 +50,7 @@ let PgPlaces() =
 
     let props = {|
             Structure = structure
-            NewEdit = fun place -> EditPlace place
+            useEditor = fun place -> usePlaceEditor place
             ItemNew = fun () -> Utils.newPlace()
             ItemSave = Api.Places.saveItem
             FetchBefore = fetchBefore

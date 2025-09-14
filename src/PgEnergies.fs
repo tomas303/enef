@@ -5,9 +5,7 @@ open Lib
 open WgEdit
 open WgList
 
-[<ReactComponent>]
-let EditEnergy (energy: Energy) onSave onCancel =
-
+let useEnergyEditor (energy: Energy) =
     let (kind, setKind) = React.useState(energy.Kind)
     let (created, setCreated) = React.useState(Utils.unixTimeToLocalDateTime(energy.Created))
     let (amount, setAmount) = React.useState(energy.Amount)
@@ -26,24 +24,32 @@ let EditEnergy (energy: Energy) onSave onCancel =
         } |> Async.StartImmediate
         )), [| |])
 
-
-
-    let edits = [
-        DateTimeField { Name = "created" ; Value = created; HandleChange = setCreated }
-        SelectField { Name = "kind" ; Value = Constants.EnergyKindToText.[kind]; Offer = Seq.toList Constants.TextToEnergyKind.Keys |> List.map (fun key -> key, key); HandleChange = (fun x -> setKind Constants.TextToEnergyKind.[x]) }
-        IntField { Name = "amount" ; Value = amount; HandleChange = setAmount }
-        SelectField { Name = "place_id" ; Value = place_id; Offer = places; HandleChange = setPlace_id }
+    let fields = [
+        DateTimeField { Name = "created"; Value = created; HandleChange = setCreated }
+        SelectField { Name = "kind"; Value = Constants.EnergyKindToText.[kind]; Offer = Seq.toList Constants.TextToEnergyKind.Keys |> List.map (fun key -> key, key); HandleChange = (fun x -> setKind Constants.TextToEnergyKind.[x]) }
+        IntField { Name = "amount"; Value = amount; HandleChange = setAmount }
+        SelectField { Name = "place_id"; Value = place_id; Offer = places; HandleChange = setPlace_id }
     ]
 
-    let handleSave () = 
-        onSave { 
-            energy with
-                Amount = amount
-                Created = Utils.localDateTimeToUnixTime(created)
-                Kind = kind
-                Place_ID = place_id}
+    let getUpdatedEnergy () = 
+        { energy with
+            Amount = amount
+            Created = Utils.localDateTimeToUnixTime(created)
+            Kind = kind
+            Place_ID = place_id }
 
-    WgEdit edits handleSave onCancel
+    fields, getUpdatedEnergy
+
+
+[<ReactComponent>]
+let EditEnergy (energy: Energy) onSave onCancel =
+
+    let (fields, getUpdatedEnergy) = useEnergyEditor energy
+
+    let handleSave () = 
+        onSave (getUpdatedEnergy ())
+
+    WgEdit fields handleSave onCancel
 
 
 [<ReactComponent>]
@@ -94,7 +100,7 @@ let PgEnergies() =
 
     let props = {|
             Structure = structure
-            NewEdit = fun energy -> EditEnergy energy
+            useEditor = useEnergyEditor
             ItemNew = fun () -> Utils.newEnergy()
             ItemSave = Api.Energies.saveItem
             FetchBefore = fetchBefore

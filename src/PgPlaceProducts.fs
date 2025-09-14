@@ -5,9 +5,7 @@ open Lib
 open WgEdit
 open WgList
 
-[<ReactComponent>]
-let EditPlaceProduct (pp: PlaceProduct) onSave onCancel =
-
+let usePlaceProductEditor (pp: PlaceProduct) =
     let (fromDate, setFromDate) = React.useState(pp.FromDate)
     let (place_ID, setPlace_ID) = React.useState(pp.Place_ID)
     let (product_ID, setProduct_ID) = React.useState(pp.Product_ID)
@@ -44,22 +42,19 @@ let EditPlaceProduct (pp: PlaceProduct) onSave onCancel =
         } |> Async.StartImmediate
         )), [| |])
 
-
-    let edits = [
+    let fields = [
         StrField { Name = "fromDate" ; Value = fromDate; HandleChange = setFromDate }
         SelectField { Name = "place_ID" ; Value = place_ID; Offer = places; HandleChange = setPlace_ID }
         SelectField { Name = "product_ID" ; Value = product_ID; Offer = products; HandleChange = setProduct_ID }
     ]
 
-    let handleSave () = 
-        onSave { 
-            pp with
-                FromDate = fromDate
-                Place_ID = place_ID
-                Product_ID = product_ID
-        }
+    let getUpdatedPlaceProduct () = 
+        { pp with
+            FromDate = fromDate
+            Place_ID = place_ID
+            Product_ID = product_ID }
 
-    WgEdit edits handleSave onCancel
+    fields, getUpdatedPlaceProduct
 
 
 [<ReactComponent>]
@@ -128,7 +123,7 @@ let PgPlaceProducts() =
 
     let props = {|
             Structure = structure
-            NewEdit = fun pp -> EditPlaceProduct pp
+            useEditor = fun pp -> usePlaceProductEditor pp
             ItemNew = fun () -> Utils.newPlaceProduct()
             ItemSave = Api.PlaceProducts.saveItem
             FetchBefore = fetchBefore

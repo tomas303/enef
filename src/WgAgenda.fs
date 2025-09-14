@@ -3,7 +3,9 @@ module WgAgenda
 open Feliz
 open Feliz.UseDeferred
 open Feliz.UseListener
+open Browser.Dom
 open WgList
+open WgEdit
 open CustomElements
 
 module GridBuffer =
@@ -164,10 +166,66 @@ let WgAgendaButton (action: AgendaAction) =
         prop.classes [ "commander-button" ]
     ]
 
+
+[<ReactComponent>]
+let WgAgendaEdit (isOpen: bool) (onSave: unit -> unit) (onClose: unit -> unit) (title: string) (children: ReactElement) =
+    if isOpen then
+        let modalRoot = document.getElementById("modal-root")
+        ReactDOM.createPortal(
+            Html.div [
+                prop.className "modal-overlay"
+                prop.onClick (fun _ -> onClose())
+                prop.children [
+                    Html.div [
+                        prop.className "modal-content"
+                        prop.onClick (fun ev -> ev.stopPropagation())
+                        prop.children [
+                            Html.div [
+                                prop.className "modal-header"
+                                prop.children [
+                                    Html.h3 [
+                                        prop.className "modal-title"
+                                        prop.text title
+                                    ]
+                                    Html.button [
+                                        prop.className "modal-close"
+                                        prop.text "X"
+                                        prop.onClick (fun _ -> onClose())
+                                    ]
+                                ]
+                            ]
+                            Html.div [
+                                prop.className "modal-body"
+                                prop.children [ children ]
+                            ]
+                            Html.div [
+                                prop.className "modal-footer"
+                                prop.children [
+                                    Html.button [
+                                        prop.className "modal-button modal-button-secondary"
+                                        prop.text "cancel"
+                                        prop.onClick (fun _ -> onClose())
+                                    ]
+                                    Html.button [
+                                        prop.className "modal-button modal-button-primary"
+                                        prop.text "save"
+                                        prop.onClick (fun _ -> onSave())
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ],
+            modalRoot
+        )
+    else
+        Html.none
+
 [<ReactComponent>]
 let WgAgenda (props:{|
         Structure: WgListStructure<'T>
-        NewEdit: 'T -> ('T -> unit) -> (unit -> unit) -> ReactElement
+        useEditor:'T -> list<Field> * ( unit ->  'T)
         ItemNew: unit -> 'T
         ItemSave: 'T -> Async<Result<'T, string>>
         FetchBefore: Option<'T> -> int -> Async<Result<list<'T>, string>>
@@ -181,6 +239,14 @@ let WgAgenda (props:{|
     let (state, setState) = React.useState(State.Browsing)
     let (lastError, setLastError) = React.useState(None)
 
+    let defaultItem = props.ItemNew()
+    let currentItem = 
+        match state with
+        | State.Adding -> defaultItem
+        | State.Editing when GridBuffer.cursorValid buffer -> buffer.Data[buffer.Cursor]
+        | _ -> defaultItem
+    // hook call - must be unconditional like any other hook 
+    let (fields, getUpdatedItem) = props.useEditor currentItem
 
     React.useEffect((fun () -> (
         async {
@@ -244,16 +310,20 @@ let WgAgenda (props:{|
             Cursor = buffer.Cursor - buffer.Top
         |}
 
-    let renderEdit =
+    let editArea =
         match state with
-        | State.Adding ->
-            let newItem = props.ItemNew()
-            props.NewEdit newItem handleSave handleCancel 
+        | State.Adding | State.Editing when GridBuffer.cursorValid buffer ->
+            let onSave () = handleSave(getUpdatedItem())
+            WgAgendaEdit 
+                true 
+                onSave
+                handleCancel 
+                (if state = State.Adding then "Add New Item" else "Edit Item")
+                (WgEditFields fields)
+                
         | State.Editing -> 
-            if GridBuffer.cursorValid buffer
-            then props.NewEdit (buffer.Data[buffer.Cursor]) handleSave handleCancel
-            else Html.text $"invalid cursor: {buffer.Cursor}"
-
+            Html.text $"invalid cursor: {buffer.Cursor}"
+            
         | _ -> Html.none
 
     let actions: AgendaAction list = [
@@ -289,10 +359,24 @@ let WgAgenda (props:{|
             )
         ]
 
+    let contentArea = 
+        Html.div [
+            // prop.classes [ "agenda-content"; "agenda-overlay" ]
+            prop.children [
+                Html.div [
+                    // prop.classes [ "commander-list-panel" ]
+                    prop.id "edit-portal"
+                    prop.children [
+                        WgList listProps
+                    ]                
+                ]
+                editArea
+            ]
+        ]
+
+
     Html.div [
         renderError ()
-        WgList listProps
+        contentArea
         buttonBar
-        renderEdit
-        
     ]

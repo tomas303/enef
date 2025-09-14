@@ -5,21 +5,17 @@ open Lib
 open WgEdit
 open WgList
 
-[<ReactComponent>]
-let EditProvider (provider: Provider) onSave onCancel =
-
+let useProviderEditor (provider: Provider) =
     let (name, setName) = React.useState(provider.Name)
 
-    let edits = [
+    let fields = [
         StrField { Name = "name" ; Value = name; HandleChange = setName }
     ]
 
-    let handleSave () = 
-        onSave { 
-            provider with
-                Name = name }
+    let getUpdatedProvider () = 
+        { provider with Name = name }
 
-    WgEdit edits handleSave onCancel
+    fields, getUpdatedProvider
 
 
 [<ReactComponent>]
@@ -49,7 +45,7 @@ let PgProviders() =
 
     let props = {|
             Structure = structure
-            NewEdit = fun provider -> EditProvider provider
+            useEditor = fun provider -> useProviderEditor provider
             ItemNew = fun () -> Utils.newProvider()
             ItemSave = Api.Providers.saveItem
             FetchBefore = fetchBefore

@@ -5,9 +5,7 @@ open Lib
 open WgEdit
 open WgList
 
-[<ReactComponent>]
-let EditProduct (product: Product) onSave onCancel =
-
+let useProductEditor (product: Product) =
     let (provider_ID, setProvider_ID) = React.useState(product.Provider_ID)
     let (name, setName) = React.useState(product.Name)
     let (providers, setProviders) = React.useState([])
@@ -24,18 +22,17 @@ let EditProduct (product: Product) onSave onCancel =
         } |> Async.StartImmediate
         )), [| |])
 
-    let edits = [
+    let fields = [
         StrField { Name = "name" ; Value = name; HandleChange = setName }
         SelectField { Name = "provider_ID" ; Value = provider_ID; Offer = providers; HandleChange = setProvider_ID }
     ]
 
-    let handleSave () = 
-        onSave { 
-            product with
-                Provider_ID = provider_ID
-                Name = name}
+    let getUpdatedProduct () = 
+        { product with
+            Provider_ID = provider_ID
+            Name = name }
 
-    WgEdit edits handleSave onCancel
+    fields, getUpdatedProduct
 
 
 [<ReactComponent>]
@@ -89,7 +86,7 @@ let PgProducts() =
 
     let props = {|
             Structure = structure
-            NewEdit = fun product -> EditProduct product
+            useEditor = fun product -> useProductEditor product
             ItemNew = fun () -> Utils.newProduct()
             ItemSave = Api.Products.saveItem
             FetchBefore = fetchBefore

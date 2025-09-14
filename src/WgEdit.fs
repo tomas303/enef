@@ -92,7 +92,7 @@ let WgSelect (selectedId: string) (onSelect: string -> unit) (items: (string * s
     ]
 
 [<ReactComponent>]
-let WgEdit fields onSave onCancel =
+let WgEditFields fields =
     let edits =
         fields
         |> List.map (fun field ->
@@ -104,13 +104,15 @@ let WgEdit fields onSave onCancel =
             | SelectField fld -> WgSelect fld.Value fld.HandleChange fld.Offer
         )
 
-
     Html.div [
-        Html.div [
-            prop.classes [ "edit-box" ]
-            prop.children edits
-        ]
+        prop.classes [ "edit-box" ]
+        prop.children edits
+    ]
 
+[<ReactComponent>]
+let WgEdit fields onSave onCancel =
+    Html.div [
+        WgEditFields fields
         Html.div [
             Html.button [
                 prop.text "Cancel"
