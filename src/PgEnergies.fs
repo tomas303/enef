@@ -12,6 +12,13 @@ let useEnergyEditor (energy: Energy) =
     let (place_id, setPlace_id) = React.useState(energy.Place_ID)
     let (places, setPlaces) = React.useState([])
 
+    React.useEffect((fun () ->
+        setKind(energy.Kind)
+        setCreated(Utils.unixTimeToLocalDateTime(energy.Created))
+        setAmount(energy.Amount)
+        setPlace_id(energy.Place_ID)
+    ), [| box energy.ID |])
+
     React.useEffect((fun () -> (
         async {
             let! items = Lib.Api.Places.loadAll()

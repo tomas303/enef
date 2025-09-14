@@ -239,7 +239,9 @@ let WgAgenda (props:{|
     let (state, setState) = React.useState(State.Browsing)
     let (lastError, setLastError) = React.useState(None)
 
-    let defaultItem = props.ItemNew()
+    // there are items with ID generated each time ItemNew is called, and because
+    // it can be used in useEffect as a checker to change ... thats reason to use memo here
+    let defaultItem = React.useMemo((fun () -> props.ItemNew()), [| |])
     let currentItem = 
         match state with
         | State.Adding -> defaultItem
