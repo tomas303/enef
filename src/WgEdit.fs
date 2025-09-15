@@ -85,6 +85,7 @@ let WgDateTime (value : DateTime) (onChange : DateTime -> unit) =
 [<ReactComponent>]
 let WgSelect (selectedId: string) (onSelect: string -> unit) (items: (string * string) list) =
     Html.xselect [
+        prop.key selectedId  // Force re-render when selectedId changes
         prop.classes [ "edit-item" ]
         prop.value selectedId
         prop.options items
