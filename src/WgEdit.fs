@@ -47,35 +47,40 @@ type Field =
 
 
 [<ReactComponent>]
-let WgStr (value : string) (onChange : string -> unit) =
+let WgStr (fieldName: string) (value: string) (onChange: string -> unit) =
     Html.xtext [
+        prop.key $"{fieldName}"
         prop.classes [ "edit-item" ]
         prop.value value
-        prop.onXChange onChange  // Use custom onChange for web components
+        prop.onXChange onChange
     ]
 
 [<ReactComponent>]
-let WgInt (value : int) (onChange : int -> unit) =
+let WgInt (fieldName: string) (value: int) (onChange: int -> unit) =
     Html.xnumber [
+        prop.key $"{fieldName}"
         prop.classes [ "edit-item" ]
         prop.value value
-        prop.onXChange onChange  // Use custom onChange for web components
+        prop.onXChange onChange
     ]
 
 [<ReactComponent>]
-let WgBool (value : bool) (onChange : bool -> unit) =
+let WgBool (fieldName: string) (value: bool) (onChange: bool -> unit) =
     Html.xboolean [
+        prop.key $"{fieldName}"
         prop.classes [ "edit-item" ]
         prop.value value
-        prop.onXChange onChange  // Use custom onChange for web components
+        prop.onXChange onChange
     ]
 
 [<ReactComponent>]
-let WgDateTime (value : DateTime) (onChange : DateTime -> unit) =
+let WgDateTime (fieldName: string) (value: DateTime) (onChange: DateTime -> unit) =
+    let dateString = value.ToString("yyyy-MM-dd")
     Html.xdate [
+        prop.key $"{fieldName}"
         prop.classes [ "edit-item" ]
         prop.format "dd.mm.yyyy"
-        prop.value (value.ToString("yyyy-MM-dd")) // Convert DateTime to ISO string (YYYY-MM-DD)
+        prop.value dateString
         prop.onXChange (fun (isoString: string) -> 
             match DateTime.TryParse(isoString) with
             | true, dt -> onChange dt
@@ -83,9 +88,9 @@ let WgDateTime (value : DateTime) (onChange : DateTime -> unit) =
     ]
 
 [<ReactComponent>]
-let WgSelect (selectedId: string) (onSelect: string -> unit) (items: (string * string) list) =
+let WgSelect (fieldName: string) (selectedId: string) (onSelect: string -> unit) (items: (string * string) list) =
     Html.xselect [
-        prop.key selectedId  // Force re-render when selectedId changes
+        prop.key $"{fieldName}"  // Unique key combining field name and value
         prop.classes [ "edit-item" ]
         prop.value selectedId
         prop.options items
@@ -98,11 +103,11 @@ let WgEditFields fields =
         fields
         |> List.map (fun field ->
             match field with
-            | StrField fld -> WgStr fld.Value fld.HandleChange
-            | IntField fld -> WgInt fld.Value fld.HandleChange
-            | BoolField fld -> WgBool fld.Value fld.HandleChange
-            | DateTimeField fld -> WgDateTime fld.Value fld.HandleChange
-            | SelectField fld -> WgSelect fld.Value fld.HandleChange fld.Offer
+            | StrField fld -> WgStr fld.Name fld.Value fld.HandleChange
+            | IntField fld -> WgInt fld.Name fld.Value fld.HandleChange
+            | BoolField fld -> WgBool fld.Name fld.Value fld.HandleChange
+            | DateTimeField fld -> WgDateTime fld.Name fld.Value fld.HandleChange
+            | SelectField fld -> WgSelect fld.Name fld.Value fld.HandleChange fld.Offer
         )
 
     Html.div [
