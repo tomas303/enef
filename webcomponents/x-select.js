@@ -168,6 +168,8 @@ class XSelect extends XInputBase {
       return;
     }
     if (name === 'value') {
+      const currentValue = this.getAttribute('value') || '';
+      this._setEditorValue(currentValue);
       // Update dropdown when value changes to reflect new selection
       this._updateDropdown();
     }
