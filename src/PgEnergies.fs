@@ -14,19 +14,11 @@ let useEnergyEditor (energy: Energy) =
 
     React.useEffect((fun () ->
         let energyCreated = Utils.unixTimeToLocalDateTime(energy.Created)
-        if kind <> energy.Kind then 
-            Browser.Dom.console.log("Setting kind")
-            setKind(energy.Kind)
-        if created <> energyCreated then 
-            Browser.Dom.console.log("Setting created")
-            setCreated(energyCreated)
-        if amount <> energy.Amount then 
-            Browser.Dom.console.log("Setting amount")
-            setAmount(energy.Amount)
-        if place_id <> energy.Place_ID then 
-            Browser.Dom.console.log("Setting place_id")
-            setPlace_id(energy.Place_ID)
-    ))
+        setKind(energy.Kind)
+        setCreated(energyCreated)
+        setAmount(energy.Amount)
+        setPlace_id(energy.Place_ID)
+    ), [| box energy |])  // ← Depend on entire energy object
 
     React.useEffect((fun () -> (
         async {
