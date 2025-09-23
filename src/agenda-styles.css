@@ -19,7 +19,7 @@
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     max-width: 90vw;  /* Don't exceed screen width */
     max-height: 90vh; /* Don't exceed screen height */
-    overflow: auto;   /* Scroll if content too large */
+    overflow: visible;   /* dropdown combo is not displayed otherways */
     position: relative;
     padding: 20px;
 }

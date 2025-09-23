@@ -105,7 +105,7 @@ class XSelect extends XInputBase {
         border-top: none;
         border-radius: 0 0 4px 4px;
         max-height: 200px;
-        overflow-y: auto;
+        overflow-y: visible;
         z-index: 1000;
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       }
