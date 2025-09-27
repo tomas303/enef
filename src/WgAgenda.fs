@@ -8,6 +8,38 @@ open WgList
 open WgEdit
 open CustomElements
 
+module FocusManager =
+    
+    let findCustomElements (modalElement: Browser.Types.Element) =
+        modalElement.querySelectorAll("x-date, x-select, x-number, x-input")
+        |> fun nodeList -> [| for i in 0 .. nodeList.length - 1 -> nodeList.item(i) |]
+        |> Array.choose (fun node -> 
+            match node with 
+            | :? Browser.Types.HTMLElement as elem -> Some elem
+            | _ -> None)
+        |> Array.toList
+
+    let findOtherFocusableElements (modalElement: Browser.Types.Element) =
+        modalElement.querySelectorAll("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])")
+        |> fun nodeList -> [| for i in 0 .. nodeList.length - 1 -> nodeList.item(i) |]
+        |> Array.choose (fun node -> 
+            match node with 
+            | :? Browser.Types.HTMLElement as elem -> 
+                // Only include if not already a custom element
+                let tagName = elem.tagName.ToLower()
+                if not (tagName.StartsWith("x-")) then Some elem else None
+            | _ -> None)
+        |> Array.toList
+
+    let getAllFocusableElements (modalElement: Browser.Types.Element) =
+        let customElements = findCustomElements modalElement
+        let otherElements = findOtherFocusableElements modalElement
+        customElements @ otherElements
+
+    let isSameElement (activeElement: Browser.Types.Element) (targetElement: Browser.Types.HTMLElement) =
+        // Use the DOM's isSameNode method for reliable element comparison
+        activeElement.isSameNode(targetElement :> Browser.Types.Node)
+
 module GridBuffer =
 
     type Data<'T> = {
@@ -178,30 +210,7 @@ let WgAgendaEdit (isOpen: bool) (onSave: unit -> unit) (onClose: unit -> unit) (
             if keyEvent.key = "Tab" then
                 match modalRef.current with
                 | Some modalElement ->
-                    // Build focusable elements list: custom elements first, then buttons
-                    let customElements = 
-                        modalElement.querySelectorAll("x-date, x-select, x-number, x-input, .edit-item")
-                        |> fun nodeList -> [| for i in 0 .. nodeList.length - 1 -> nodeList.item(i) |]
-                        |> Array.choose (fun node -> 
-                            match node with 
-                            | :? Browser.Types.HTMLElement as elem -> Some elem
-                            | _ -> None)
-                        |> Array.toList
-                    
-                    let otherFocusableElements = 
-                        modalElement.querySelectorAll("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])")
-                        |> fun nodeList -> [| for i in 0 .. nodeList.length - 1 -> nodeList.item(i) |]
-                        |> Array.choose (fun node -> 
-                            match node with 
-                            | :? Browser.Types.HTMLElement as elem -> 
-                                // Only include if not already a custom element
-                                let tagName = elem.tagName.ToLower()
-                                if not (tagName.StartsWith("x-")) then Some elem else None
-                            | _ -> None)
-                        |> Array.toList
-                    
-                    // Combine: custom elements first, then other focusable elements
-                    let focusableElements = customElements @ otherFocusableElements
+                    let focusableElements = FocusManager.getAllFocusableElements modalElement
 
                     match focusableElements with
                     | firstElement :: _ ->
@@ -210,12 +219,12 @@ let WgAgendaEdit (isOpen: bool) (onSave: unit -> unit) (onClose: unit -> unit) (
 
                         if keyEvent.shiftKey then
                             // Shift+Tab: if on first element or outside modal, go to last
-                            if activeElement = (firstElement :> Browser.Types.Element) || not (modalElement.contains(activeElement)) then
+                            if FocusManager.isSameElement activeElement firstElement || not (modalElement.contains(activeElement)) then
                                 keyEvent.preventDefault()
                                 lastElement.focus()
                         else
                             // Tab: if on last element or outside modal, go to first  
-                            if activeElement = (lastElement :> Browser.Types.Element) || not (modalElement.contains(activeElement)) then
+                            if FocusManager.isSameElement activeElement lastElement || not (modalElement.contains(activeElement)) then
                                 keyEvent.preventDefault()
                                 firstElement.focus()
                     | [] -> 
@@ -235,51 +244,20 @@ let WgAgendaEdit (isOpen: bool) (onSave: unit -> unit) (onClose: unit -> unit) (
             let timeoutId = window.setTimeout((fun () ->
                 match modalRef.current with
                 | Some modalElement ->
-                    // Look for custom elements (x-date, x-select, x-number, x-input)
-                    let customElements = 
-                        modalElement.querySelectorAll("x-date, x-select, x-number, x-input")
-                        |> fun nodeList -> 
-                            Browser.Dom.console.log $"Found {nodeList.length} custom elements"
-                            [| for i in 0 .. nodeList.length - 1 -> nodeList.item(i) |]
-                        |> Array.choose (fun node -> 
-                            match node with 
-                            | :? Browser.Types.HTMLElement as elem -> 
-                                Browser.Dom.console.log $"Custom element: {elem.tagName}"
-                                Some elem
-                            | _ -> None)
-                        |> Array.toList
+                    let customElements = FocusManager.findCustomElements modalElement
                     
                     match customElements with
                     | firstCustom :: _ -> 
                         // Focus the first custom element
-                        Browser.Dom.console.log $"Focusing first custom element: {firstCustom.tagName}"
                         firstCustom.focus()
                     | [] ->
                         // Fallback: look for standard form elements
-                        Browser.Dom.console.log $"No custom elements, falling back to standard elements"
-                        let standardElements = 
-                            modalElement.querySelectorAll("input, select, textarea, button, [href], [tabindex]:not([tabindex='-1'])")
-                            |> fun nodeList -> 
-                                Browser.Dom.console.log $"Found {nodeList.length} standard elements"
-                                [| for i in 0 .. nodeList.length - 1 -> nodeList.item(i) |]
-                            |> Array.choose (fun node -> 
-                                match node with 
-                                | :? Browser.Types.HTMLElement as elem -> 
-                                    Browser.Dom.console.log $"Standard element: {elem.tagName} classes: {elem.className}"
-                                    Some elem
-                                | _ -> None)
-                            |> Array.toList
+                        let standardElements = FocusManager.findOtherFocusableElements modalElement
                         
                         match standardElements with
-                        | first :: _ -> 
-                            Browser.Dom.console.log $"Focusing first standard element: {first.tagName}"
-                            first.focus()
-                        | [] -> 
-                            Browser.Dom.console.log $"No focusable elements found at all!"
-                            ()
-                | None -> 
-                    Browser.Dom.console.log $"Modal ref is None"
-                    ()
+                        | first :: _ -> first.focus()
+                        | [] -> ()
+                | None -> ()
             ), 100, [||])
 
             // Return cleanup function as IDisposable
