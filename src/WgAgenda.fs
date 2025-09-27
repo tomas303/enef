@@ -40,6 +40,59 @@ module FocusManager =
         // Use the DOM's isSameNode method for reliable element comparison
         activeElement.isSameNode(targetElement :> Browser.Types.Node)
 
+    let handleTabNavigation (modalRef: Fable.React.IRefValue<Browser.Types.Element option>) (keyEvent: Browser.Types.KeyboardEvent) =
+        match modalRef.current with
+        | Some modalElement ->
+            let focusableElements = getAllFocusableElements modalElement
+
+            match focusableElements with
+            | firstElement :: _ ->
+                let lastElement = List.last focusableElements
+                let activeElement = document.activeElement
+
+                if keyEvent.shiftKey then
+                    // Shift+Tab: if on first element or outside modal, go to last
+                    if isSameElement activeElement firstElement || not (modalElement.contains(activeElement)) then
+                        keyEvent.preventDefault()
+                        lastElement.focus()
+                else
+                    // Tab: if on last element or outside modal, go to first  
+                    if isSameElement activeElement lastElement || not (modalElement.contains(activeElement)) then
+                        keyEvent.preventDefault()
+                        firstElement.focus()
+            | [] -> 
+                // No focusable elements - prevent Tab from doing anything
+                keyEvent.preventDefault()
+        | None -> ()
+
+    let setInitialFocus (modalRef: Fable.React.IRefValue<Browser.Types.Element option>) =
+        match modalRef.current with
+        | Some modalElement ->
+            let customElements = findCustomElements modalElement
+            
+            match customElements with
+            | firstCustom :: _ -> 
+                // Focus the first custom element
+                firstCustom.focus()
+            | [] ->
+                // Fallback: look for standard form elements
+                let standardElements = findOtherFocusableElements modalElement
+                
+                match standardElements with
+                | first :: _ -> first.focus()
+                | [] -> ()
+        | None -> ()
+
+    let createKeyDownHandler (modalRef: Fable.React.IRefValue<Browser.Types.Element option>) (onClose: unit -> unit) =
+        fun (e: Browser.Types.Event) ->
+            let keyEvent = e :?> Browser.Types.KeyboardEvent
+            if keyEvent.key = "Tab" then
+                handleTabNavigation modalRef keyEvent
+            elif keyEvent.key = "Escape" then
+                // Handle Escape key to close modal
+                keyEvent.preventDefault()
+                onClose()
+
 module GridBuffer =
 
     type Data<'T> = {
@@ -200,80 +253,29 @@ let WgAgendaButton (action: AgendaAction) =
 
 
 [<ReactComponent>]
-let WgAgendaEdit (isOpen: bool) (onSave: unit -> unit) (onClose: unit -> unit) (title: string) (children: ReactElement) =
+let WgAgendaEdit (onSave: unit -> unit) (onClose: unit -> unit) (title: string) (children: ReactElement) =
     let modalRef = React.useRef<Browser.Types.Element option>(None)
 
     // Focus trap effect
     React.useEffect((fun () ->
-        let handleKeyDown (e: Browser.Types.Event) =
-            let keyEvent = e :?> Browser.Types.KeyboardEvent
-            if keyEvent.key = "Tab" then
-                match modalRef.current with
-                | Some modalElement ->
-                    let focusableElements = FocusManager.getAllFocusableElements modalElement
+        // Create and register the keyboard handler
+        let handleKeyDown = FocusManager.createKeyDownHandler modalRef onClose
+        document.addEventListener("keydown", handleKeyDown)
+        
+        // Set initial focus to first custom element
+        let timeoutId = window.setTimeout((fun () ->
+            FocusManager.setInitialFocus modalRef
+        ), 100, [||])
 
-                    match focusableElements with
-                    | firstElement :: _ ->
-                        let lastElement = List.last focusableElements
-                        let activeElement = document.activeElement
+        // Return cleanup function as IDisposable
+        { new System.IDisposable with
+            member _.Dispose() = 
+                document.removeEventListener("keydown", handleKeyDown)
+                window.clearTimeout(timeoutId) }
+    ), [||])
 
-                        if keyEvent.shiftKey then
-                            // Shift+Tab: if on first element or outside modal, go to last
-                            if FocusManager.isSameElement activeElement firstElement || not (modalElement.contains(activeElement)) then
-                                keyEvent.preventDefault()
-                                lastElement.focus()
-                        else
-                            // Tab: if on last element or outside modal, go to first  
-                            if FocusManager.isSameElement activeElement lastElement || not (modalElement.contains(activeElement)) then
-                                keyEvent.preventDefault()
-                                firstElement.focus()
-                    | [] -> 
-                        // No focusable elements - prevent Tab from doing anything
-                        keyEvent.preventDefault()
-                | None -> ()
-            elif keyEvent.key = "Escape" then
-                // Handle Escape key to close modal
-                keyEvent.preventDefault()
-                onClose()
-
-        if isOpen then
-            // Add keydown listener
-            document.addEventListener("keydown", handleKeyDown)
-            
-            // Set initial focus to first custom element
-            let timeoutId = window.setTimeout((fun () ->
-                match modalRef.current with
-                | Some modalElement ->
-                    let customElements = FocusManager.findCustomElements modalElement
-                    
-                    match customElements with
-                    | firstCustom :: _ -> 
-                        // Focus the first custom element
-                        firstCustom.focus()
-                    | [] ->
-                        // Fallback: look for standard form elements
-                        let standardElements = FocusManager.findOtherFocusableElements modalElement
-                        
-                        match standardElements with
-                        | first :: _ -> first.focus()
-                        | [] -> ()
-                | None -> ()
-            ), 100, [||])
-
-            // Return cleanup function as IDisposable
-            { new System.IDisposable with
-                member _.Dispose() = 
-                    document.removeEventListener("keydown", handleKeyDown)
-                    window.clearTimeout(timeoutId) }
-        else
-            // Return empty disposable
-            { new System.IDisposable with
-                member _.Dispose() = () }
-    ), [| box isOpen |])
-
-    if isOpen then
-        let modalRoot = document.getElementById("modal-root")
-        ReactDOM.createPortal(
+    let modalRoot = document.getElementById("modal-root")
+    ReactDOM.createPortal(
             Html.div [
                 prop.className "modal-overlay"
                 prop.onClick (fun _ -> onClose())
@@ -322,8 +324,6 @@ let WgAgendaEdit (isOpen: bool) (onSave: unit -> unit) (onClose: unit -> unit) (
             ],
             modalRoot
         )
-    else
-        Html.none
 
 [<ReactComponent>]
 let WgAgenda (props:{|
@@ -335,34 +335,20 @@ let WgAgenda (props:{|
         FetchAfter: Option<'T> -> int -> Async<Result<list<'T>, string>>
     |}) =
 
+    // ===== HOOKS (Root Level) =====
+    let buffer, setBuffer = React.useState(GridBuffer.create 15 100)
+    let deltaMove, setDeltaMove = React.useState(1)
+    let state, setState = React.useState(State.Browsing)
+    let lastError, setLastError = React.useState(None)
 
-    let (buffer, setBuffer) = React.useState(GridBuffer.create 15 100)
-    let view = GridBuffer.view buffer
-    let (deltaMove, setDeltaMove) = React.useState(1)
-    let (state, setState) = React.useState(State.Browsing)
-    let (lastError, setLastError) = React.useState(None)
-
-    // there are items with ID generated each time ItemNew is called, and because
-    // it can be used in useEffect as a checker to change ... thats reason to use memo here
     let defaultItem = React.useMemo((fun () -> props.ItemNew()), [| |])
     let currentItem = 
         match state with
         | State.Adding -> defaultItem
         | State.Editing when GridBuffer.cursorValid buffer -> buffer.Data[buffer.Cursor]
         | _ -> defaultItem
-    // hook call - must be unconditional like any other hook 
-    let (fields, getUpdatedItem) = props.useEditor currentItem
-
-    React.useEffect((fun () -> (
-        async {
-            if state = State.Browsing && deltaMove <> 0 then
-                let! newBuffer = GridBuffer.move buffer deltaMove props.FetchBefore props.FetchAfter
-                setBuffer newBuffer
-                setDeltaMove 0
-                setLastError newBuffer.Lasterror
-        } |> Async.StartImmediate
-        )), [| box deltaMove |])
-
+    
+    let fields, getUpdatedItem = props.useEditor currentItem
 
     let handleSave =
         React.useDeferredCallback(props.ItemSave, 
@@ -391,45 +377,15 @@ let WgAgenda (props:{|
             )
         )
 
-
-    let handleCancel () =
-        setState(State.Browsing)
-
-
-    let renderError () =
-        match lastError with
-        | Some error -> Html.text error
-        | None -> Html.none
-
-    let listRows = view |> List.map (fun item ->
-            let row = props.Structure.Headers |> List.map (fun header ->
-                header.DataGetter item
-            )
-            props.Structure.IdGetter(item), row
-    )
-
-    let listProps = {|
-            Structure = props.Structure
-            Rows = listRows
-            RowCount = buffer.ViewSize
-            Cursor = buffer.Cursor - buffer.Top
-        |}
-
-    let editArea =
-        match state with
-        | State.Adding | State.Editing when GridBuffer.cursorValid buffer ->
-            let onSave () = handleSave(getUpdatedItem())
-            WgAgendaEdit 
-                true 
-                onSave
-                handleCancel 
-                (if state = State.Adding then "Add New Item" else "Edit Item")
-                (WgEditFields fields)
-                
-        | State.Editing -> 
-            Html.text $"invalid cursor: {buffer.Cursor}"
-            
-        | _ -> Html.none
+    React.useEffect((fun () ->
+        async {
+            if state = State.Browsing && deltaMove <> 0 then
+                let! newBuffer = GridBuffer.move buffer deltaMove props.FetchBefore props.FetchAfter
+                setBuffer newBuffer
+                setDeltaMove 0
+                setLastError newBuffer.Lasterror
+        } |> Async.StartImmediate
+        ), [| box deltaMove |])
 
     let actions: AgendaAction list = [
         { Key = {| Shortcut = "PageUp"; Alt = false |}; Label = "PgUp"; Handler = (fun () -> if state = State.Browsing then setDeltaMove(buffer.ViewSize * -1)); Enabled = true }
@@ -440,10 +396,7 @@ let WgAgenda (props:{|
         { Key = {| Shortcut = "e"; Alt = true |}; Label = "Edit"; Handler = (fun () -> if state = State.Browsing && GridBuffer.cursorValid buffer then setState(State.Editing)); Enabled = state = State.Browsing && GridBuffer.cursorValid buffer }
     ]
 
-
-    // Global keyboard handler for function keys
     React.useListener.onKeyDown(fun ev ->
-        // Only handle function keys
         let matchingAction = 
             actions 
             |> List.tryFind (fun action -> action.Key.Shortcut = ev.key && action.Key.Alt = ev.altKey && action.Enabled)
@@ -454,6 +407,53 @@ let WgAgenda (props:{|
             action.Handler()
         | None -> ()
     )
+
+    // ===== EDIT AREA =====
+    let editArea =
+        match state with
+        | State.Adding | State.Editing when GridBuffer.cursorValid buffer ->
+            let onSave () = handleSave(getUpdatedItem())
+            let onCancel () = setState(State.Browsing)
+            WgAgendaEdit 
+                onSave
+                onCancel 
+                (if state = State.Adding then "Add New Item" else "Edit Item")
+                (WgEditFields fields)
+                
+        | State.Editing -> 
+            Html.text $"invalid cursor: {buffer.Cursor}"
+            
+        | _ -> Html.none
+
+    // ===== LIST CONTENT =====
+    let view = GridBuffer.view buffer
+    let listRows = view |> List.map (fun item ->
+        let row = props.Structure.Headers |> List.map (fun header ->
+            header.DataGetter item
+        )
+        props.Structure.IdGetter(item), row
+    )
+
+    let listProps = {|
+        Structure = props.Structure
+        Rows = listRows
+        RowCount = buffer.ViewSize
+        Cursor = buffer.Cursor - buffer.Top
+    |}
+
+    let listContent = 
+        Html.div [
+            prop.id "edit-portal"
+            prop.children [
+                WgList listProps
+            ]                
+        ]
+
+    // ===== UI COMPONENTS =====
+    let errorDisplay =
+        match lastError with
+        | Some error -> Html.text error
+        | None -> Html.none
 
     let buttonBar = 
         Html.div [
@@ -466,22 +466,15 @@ let WgAgenda (props:{|
 
     let contentArea = 
         Html.div [
-            // prop.classes [ "agenda-content"; "agenda-overlay" ]
             prop.children [
-                Html.div [
-                    // prop.classes [ "commander-list-panel" ]
-                    prop.id "edit-portal"
-                    prop.children [
-                        WgList listProps
-                    ]                
-                ]
+                listContent
                 editArea
             ]
         ]
 
-
+    // ===== RENDER =====
     Html.div [
-        renderError ()
+        errorDisplay
         contentArea
         buttonBar
     ]
