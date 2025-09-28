@@ -101,7 +101,10 @@ let PgEnergies() =
                 { Label = "kind" ; FlexBasis = 15; DataGetter = fun item -> Constants.EnergyKindToText.[item.Kind] }
                 { Label = "created" ; FlexBasis = 25; DataGetter = fun item -> (Utils.unixTimeToLocalDateTime item.Created).ToString("dd.MM.yyyy") }
                 { Label = "amount" ; FlexBasis = 25; DataGetter = fun item -> $"{item.Amount} {Constants.EnergyKindToUnit.[item.Kind]}" }
-                { Label = "place_id" ; FlexBasis = 10; DataGetter = fun item -> memoizedPlaces[item.Place_ID] }
+                { Label = "place_id" ; FlexBasis = 10; DataGetter = fun item ->
+                    match Map.tryFind item.Place_ID memoizedPlaces with
+                    | Some name -> name
+                    | None -> "Unknown place" }
             ]
             IdGetter = fun item -> item.ID
         }

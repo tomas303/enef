@@ -83,7 +83,7 @@ let PgPrices() =
             Headers = [
                 { Label = "name" ; FlexBasis = 50; DataGetter = fun (item: Price) -> item.Name }
                 { Label = "value" ; FlexBasis = 20; DataGetter = fun (item: Price) -> item.Value.ToString() }
-                { Label = "Provider_ID" ; FlexBasis = 30; DataGetter = fun (item: Price) -> 
+                { Label = "provider_id" ; FlexBasis = 30; DataGetter = fun (item: Price) -> 
                     match Map.tryFind item.Provider_ID memoizedProviders with
                     | Some name -> name
                     | None -> "Unknown Provider" }
