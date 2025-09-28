@@ -6,40 +6,40 @@ open WgEdit
 open WgList
 
 let usePriceEditor (price: Price) =
-    let (value, setValue) = React.useState(price.Value)
-    let (fromDate, setFromDate) = React.useState(price.FromDate)
-    let (product_ID, setProduct_ID) = React.useState(price.Product_ID)
-    let (priceType, setPriceType) = React.useState(price.PriceType)
-    let (energyKind, setEnergyKind) = React.useState(price.EnergyKind)
-    let (products, setProducts) = React.useState([])
+    let energyKind, setEnergyKind = React.useState(price.EnergyKind)
+    let priceType, setPriceType = React.useState(price.PriceType)
+    let value, setValue = React.useState(price.Value)
+    let provider_id, setProvider_id = React.useState(price.Provider_ID)
+    let providers, setProviders = React.useState([])
+    let name, setName = React.useState(price.Name)
 
-    React.useEffect((fun () -> (
+    React.useEffectOnce(fun () -> 
         async {
-            let! items = Lib.Api.Products.loadAll()
+            let! items = Lib.Api.Providers.loadAll()
             match items with
             | Ok content ->
-                let newProducts = content |> List.map (fun x -> x.ID, x.Name)
-                setProducts newProducts
+                let newProviders = content |> List.map (fun x -> x.ID, x.Name)
+                setProviders newProviders
             | Error _ ->
-                setProducts []
+                setProviders []
         } |> Async.StartImmediate
-        )), [| |])
+    )
 
     let fields = [
-        IntField { Name = "value" ; Value = value; HandleChange = setValue }
-        StrField { Name = "fromDate" ; Value = fromDate; HandleChange = setFromDate }
         SelectField { Name = "energyKind" ; Value = Constants.EnergyKindToText[energyKind]; Offer = Constants.EnergyKindSelection; HandleChange = (fun x -> setEnergyKind Constants.TextToEnergyKind[x]) }
         SelectField { Name = "priceType" ; Value = Constants.PriceTypeToText[priceType]; Offer = Constants.PriceTypeSelection; HandleChange = (fun x -> setPriceType Constants.TextToPriceType[x]) }
-        SelectField { Name = "product_ID" ; Value = product_ID; Offer = products; HandleChange = setProduct_ID }
+        IntField { Name = "value" ; Value = value; HandleChange = setValue }
+        SelectField { Name = "provider_id" ; Value = provider_id; Offer = providers; HandleChange = setProvider_id }
+        StrField { Name = "name" ; Value = name; HandleChange = setName }
     ]
 
     let getUpdatedPrice () = 
         { price with
-            Value = value
-            FromDate = fromDate
-            Product_ID = product_ID
+            EnergyKind = energyKind 
             PriceType = priceType
-            EnergyKind = energyKind }
+            Value = value
+            Provider_ID = provider_id
+            Name = name }
 
     fields, getUpdatedPrice
 
@@ -47,46 +47,46 @@ let usePriceEditor (price: Price) =
 [<ReactComponent>]
 let PgPrices() =
 
-    let (products, setProducts) = React.useState(Map.empty)
+    let (providers, setProviders) = React.useState(Map.empty)
 
-    React.useEffect((fun () -> 
+    React.useEffectOnce(fun () -> 
         async {
-            let! items = Api.Products.loadAll()
+            let! items = Api.Providers.loadAll()
             match items with
             | Ok content -> 
-                Dbg.wl $"products: {content}"
+                Dbg.wl $"providers: {content}"
                 let newProducts = content |> List.map (fun x -> x.ID, x.Name) |> Map.ofList
-                setProducts newProducts
+                setProviders newProducts
             | Error _ -> 
-                setProducts Map.empty
+                setProviders Map.empty
         } |> Async.StartImmediate
-    ), [||])
+    )
 
-    let memoizedProducts = React.useMemo((fun () -> products), [| products |])
+    let memoizedProviders = React.useMemo((fun () -> providers), [| providers |])
 
     let fetchBefore (price: Price option) count =
-        let fromDate, id =
+        let name, id =
             match price with
-                | Some x -> x.FromDate, x.ID
+                | Some x -> x.Name, x.ID
                 | None -> "", ""
-        Api.Prices.loadPagePrev fromDate id count
+        Api.Prices.loadPagePrev name id count
 
 
     let fetchAfter (price: Price option) count =
-        let fromDate, id =
+        let name, id =
             match price with
-                | Some x -> x.FromDate, x.ID
+                | Some x -> x.Name, x.ID
                 | None -> "", ""
-        Api.Prices.loadPageNext fromDate id count
+        Api.Prices.loadPageNext name id count
 
     let structure = {
             Headers = [
+                { Label = "name" ; FlexBasis = 50; DataGetter = fun (item: Price) -> item.Name }
                 { Label = "value" ; FlexBasis = 20; DataGetter = fun (item: Price) -> item.Value.ToString() }
-                { Label = "fromDate" ; FlexBasis = 20; DataGetter = fun (item: Price) -> item.FromDate }
-                { Label = "product_ID" ; FlexBasis = 30; DataGetter = fun (item: Price) -> 
-                    match Map.tryFind item.Product_ID memoizedProducts with
+                { Label = "Provider_ID" ; FlexBasis = 30; DataGetter = fun (item: Price) -> 
+                    match Map.tryFind item.Provider_ID memoizedProviders with
                     | Some name -> name
-                    | None -> "Unknown Product" }
+                    | None -> "Unknown Provider" }
                 { Label = "priceType" ; FlexBasis = 30; DataGetter = fun (item: Price) -> Constants.PriceTypeToText[item.PriceType] }
                 { Label = "kind" ; FlexBasis = 30; DataGetter = fun (item: Price) -> Constants.EnergyKindToText[item.EnergyKind] }
             ]

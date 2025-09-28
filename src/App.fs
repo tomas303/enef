@@ -5,9 +5,7 @@ open Feliz
 open PgEnergies
 open PgPlaces
 open PgProviders
-open PgProducts
 open PgPrices
-open PgPlaceProducts
 open PgTest
 
 [<RequireQualifiedAccess>]
@@ -17,9 +15,7 @@ type Page =
     | Energies
     | Places
     | Providers
-    | Products
     | Prices
-    | PlaceProducts
     | Test
     
 let renderMenuNavItem (label : string) (handler : unit -> unit) =
@@ -43,12 +39,9 @@ let App () =
     let menus = [
         renderMenuNavItem "Home" (fun _ -> setCurrentPage Page.Home)
         renderMenuNavItem "Energies" (fun _ -> setCurrentPage Page.Energies)
-        renderMenuNavItem "Pricelists" (fun _ -> setCurrentPage Page.Pricelists)
+        renderMenuNavItem "Prices" (fun _ -> setCurrentPage Page.Prices)
         renderMenuNavItem "Places" (fun _ -> setCurrentPage Page.Places)
         renderMenuNavItem "Providers" (fun _ -> setCurrentPage Page.Providers)
-        renderMenuNavItem "Products" (fun _ -> setCurrentPage Page.Products)
-        renderMenuNavItem "Prices" (fun _ -> setCurrentPage Page.Prices)
-        renderMenuNavItem "PlaceProducts" (fun _ -> setCurrentPage Page.PlaceProducts)
         renderMenuNavItem "Test" (fun _ -> setCurrentPage Page.Test)]
 
     let page =
@@ -58,9 +51,7 @@ let App () =
         | Page.Energies -> PgEnergies ()
         | Page.Places -> PgPlaces ()
         | Page.Providers -> PgProviders ()
-        | Page.Products -> PgProducts ()
         | Page.Prices -> PgPrices ()
-        | Page.PlaceProducts -> PgPlaceProducts ()
         | Page.Test -> PgTest ()
 
     Html.div [

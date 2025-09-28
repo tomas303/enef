@@ -245,6 +245,9 @@ let WgAgendaButton (action: AgendaAction) =
     let buttonText = $"{action.Label}{keyLabel}"
     
     Html.xbutton [
+        prop.key action.Label  // ← For React (invisible)
+        prop.custom("data-action", action.Label)  // ← For debugging (visible)
+        prop.custom("data-actionenabled", action.Enabled)  // ← For debugging (visible)
         prop.buttonText buttonText
         prop.onClick (fun _ -> if action.Enabled then action.Handler())
         prop.disabled (not action.Enabled)
@@ -338,7 +341,7 @@ let WgAgenda (props:{|
     // ===== HOOKS (Root Level) =====
     let buffer, setBuffer = React.useState(GridBuffer.create 15 100)
     let deltaMove, setDeltaMove = React.useState(1)
-    let state, setState = React.useState(State.Browsing)
+    let state, setState = React.useState State.Browsing
     let lastError, setLastError = React.useState(None)
 
     let defaultItem = React.useMemo((fun () -> props.ItemNew()), [| |])
@@ -373,7 +376,7 @@ let WgAgenda (props:{|
                             | _ -> ()
                         | Error error -> 
                             setLastError (Some error)
-                    setState(State.Browsing)
+                    setState State.Browsing
             )
         )
 
@@ -392,8 +395,8 @@ let WgAgenda (props:{|
         { Key = {| Shortcut = "PageDown"; Alt = false |}; Label = "PgDown"; Handler = (fun () -> if state = State.Browsing then setDeltaMove(buffer.ViewSize)); Enabled = true }
         { Key = {| Shortcut = "ArrowUp"; Alt = false |}; Label = "Up"; Handler = (fun () -> if state = State.Browsing then setDeltaMove(-1)); Enabled = true }
         { Key = {| Shortcut = "ArrowDown"; Alt = false |}; Label = "Down"; Handler = (fun () -> if state = State.Browsing then setDeltaMove(1)); Enabled = true }
-        { Key = {| Shortcut = "n"; Alt = true |}; Label = "Add"; Handler = (fun () -> if state = State.Browsing then setState(State.Adding)); Enabled = state = State.Browsing }
-        { Key = {| Shortcut = "e"; Alt = true |}; Label = "Edit"; Handler = (fun () -> if state = State.Browsing && GridBuffer.cursorValid buffer then setState(State.Editing)); Enabled = state = State.Browsing && GridBuffer.cursorValid buffer }
+        { Key = {| Shortcut = "n"; Alt = true |}; Label = "Add"; Handler = (fun () -> if state = State.Browsing then setState State.Adding); Enabled = state = State.Browsing }
+        { Key = {| Shortcut = "e"; Alt = true |}; Label = "Edit"; Handler = (fun () -> if state = State.Browsing && GridBuffer.cursorValid buffer then setState State.Editing); Enabled = state = State.Browsing && GridBuffer.cursorValid buffer }
     ]
 
     React.useListener.onKeyDown(fun ev ->
@@ -411,19 +414,29 @@ let WgAgenda (props:{|
     // ===== EDIT AREA =====
     let editArea =
         match state with
-        | State.Adding | State.Editing when GridBuffer.cursorValid buffer ->
+        | State.Adding ->
             let onSave () = handleSave(getUpdatedItem())
             let onCancel () = setState(State.Browsing)
             WgAgendaEdit 
                 onSave
                 onCancel 
-                (if state = State.Adding then "Add New Item" else "Edit Item")
+                "Add New Item"
+                (WgEditFields fields)
+                
+        | State.Editing when GridBuffer.cursorValid buffer ->
+            let onSave () = handleSave(getUpdatedItem())
+            let onCancel () = setState(State.Browsing)
+            WgAgendaEdit 
+                onSave
+                onCancel 
+                "Edit Item"
                 (WgEditFields fields)
                 
         | State.Editing -> 
             Html.text $"invalid cursor: {buffer.Cursor}"
             
-        | _ -> Html.none
+        | _ -> 
+            Html.none
 
     // ===== LIST CONTENT =====
     let view = GridBuffer.view buffer
@@ -460,7 +473,13 @@ let WgAgenda (props:{|
             prop.classes [ "commander-button-bar" ]
             prop.children (
                 actions 
-                |> List.map WgAgendaButton
+                |> List.mapi (fun index action ->
+                    Html.div [
+                        prop.key $"action-{action.Label}"
+                        prop.custom("data-button-wrapper", action.Label)  // ← Visible debug attribute
+                        prop.children [ WgAgendaButton action ]
+                    ]
+                )
             )
         ]
 
