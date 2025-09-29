@@ -14,7 +14,7 @@
     <Compile Include="PgPlaces.fs" />
     <Compile Include="PgProviders.fs" />
     
-    <Compile Include="PgEnergies.fs" />
+    <Compile Include="PgEnergies.fs" /><Compile Include="PgEnergyPrices.fs" />
     <Compile Include="PgPrices.fs" />
     
     <Compile Include="PgTest.fs" />

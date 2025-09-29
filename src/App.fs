@@ -6,6 +6,7 @@ open PgEnergies
 open PgPlaces
 open PgProviders
 open PgPrices
+open PgEnergyPrices
 open PgTest
 
 [<RequireQualifiedAccess>]
@@ -13,6 +14,7 @@ type Page =
     | Home
     | Pricelists
     | Energies
+    | EnergyPrices
     | Places
     | Providers
     | Prices
@@ -39,6 +41,7 @@ let App () =
     let menus = [
         renderMenuNavItem "Home" (fun _ -> setCurrentPage Page.Home)
         renderMenuNavItem "Energies" (fun _ -> setCurrentPage Page.Energies)
+        renderMenuNavItem "Energy prices" (fun _ -> setCurrentPage Page.EnergyPrices)
         renderMenuNavItem "Prices" (fun _ -> setCurrentPage Page.Prices)
         renderMenuNavItem "Places" (fun _ -> setCurrentPage Page.Places)
         renderMenuNavItem "Providers" (fun _ -> setCurrentPage Page.Providers)
@@ -49,6 +52,7 @@ let App () =
         | Page.Home -> PgEnergies ()
         | Page.Pricelists -> Html.div "Pricelists - to be done"
         | Page.Energies -> PgEnergies ()
+        | Page.EnergyPrices -> PgEnergyPrices ()
         | Page.Places -> PgPlaces ()
         | Page.Providers -> PgProviders ()
         | Page.Prices -> PgPrices ()

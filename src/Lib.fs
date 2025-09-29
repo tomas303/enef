@@ -50,6 +50,14 @@ type Price = {
     Name: string
 }
 
+type EnergyPrice = {
+    ID: string
+    Kind: EnergyKind
+    FromDate: int64
+    Price_ID : string
+    Place_ID : string
+}
+
 module Dbg =
     
     let wl (x: string) = System.Console.WriteLine x
@@ -235,6 +243,15 @@ module Encode =
             "Name", Encode.string pr.Name
         ]
 
+    let energyprices (ep : EnergyPrice) =
+        Encode.object [
+            "ID", Encode.string ep.ID
+            "Kind", Encode.int (Constants.EnergyKindToInt.[ep.Kind])
+            "FromDate", Encode.int64 ep.FromDate
+            "Price_ID", Encode.string ep.Price_ID
+            "Place_ID", Encode.string ep.Place_ID
+        ]
+
 module Decode =
 
     let energyKind: Decoder<EnergyKind> =
@@ -291,6 +308,16 @@ module Decode =
                 Value = fields.Required.At [ "Value" ] Decode.int
                 Provider_ID = fields.Required.At [ "Provider_ID" ] Decode.string
                 Name = fields.Required.At [ "Name" ] Decode.string
+            }
+        )
+
+    let energyprice : Decoder<EnergyPrice> =
+        Decode.object (fun fields -> { 
+                ID = fields.Required.At [ "ID" ] Decode.string
+                Kind = fields.Required.At [ "Kind" ] energyKind
+                FromDate = fields.Required.At [ "FromDate" ] Decode.int64
+                Price_ID = fields.Required.At [ "Price_ID" ] Decode.string
+                Place_ID = fields.Required.At [ "Place_ID" ] Decode.string
             }
         )
 
@@ -402,4 +429,24 @@ module Api =
         let loadPageNext (name : string) (id: string) (limit: int) =
             get $"{url}/prices/page/next?name={name}&id={id}&limit={limit}" (Decode.list Decode.price)
 
+
+    module EnergyPrices =
+        let loadAll () =
+            get $"{url}/energyprices" (Decode.list Decode.energyprice)
+
+        let saveItem (item : EnergyPrice) = async {
+            let json = Encode.energyprices item
+            let body = Encode.toString 2 json
+            let! status, responseText = Http.post $"{url}/energyprices" body
+            match status with
+            | 200 -> return Ok item
+            | 201 -> return Ok item
+            | _ -> return makeError status responseText
+        }
+
+        let loadPagePrev (fromdate : int64) (id: string) (limit: int) =
+            get $"{url}/energyprices/page/prev?fromdate={fromdate}&id={id}&limit={limit}" (Decode.list Decode.energyprice)
+
+        let loadPageNext (fromdate : int64) (id: string) (limit: int) =
+            get $"{url}/energyprices/page/next?fromdate={fromdate}&id={id}&limit={limit}" (Decode.list Decode.energyprice)
 
