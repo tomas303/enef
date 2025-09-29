@@ -130,7 +130,7 @@ let PgEnergyPrices() =
     let props = {|
             Structure = structure
             useEditor = useEnergyPriceEditor
-            ItemNew = fun () -> { ID = ""; Kind = Lib.EnergyKind.ElektricityVT; FromDate = Utils.localDateTimeToUnixTime(System.DateTime.Now); Price_ID = ""; Place_ID = "" }
+            ItemNew = Utils.newEnergyPrice
             ItemSave = Api.EnergyPrices.saveItem
             FetchBefore = fetchBefore
             FetchAfter = fetchAfter

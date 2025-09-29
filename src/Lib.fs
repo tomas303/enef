@@ -207,6 +207,13 @@ module Utils =
         Name = ""
     }
 
+    let newEnergyPrice () = {
+        ID = newID ()
+        Kind = EnergyKind.ElektricityNT
+        FromDate = localDateTimeToUnixTime System.DateTime.Now
+        Price_ID = ""
+        Place_ID = ""
+    }
 
 module Encode =
 
