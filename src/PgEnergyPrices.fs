@@ -6,7 +6,6 @@ open WgEdit
 open WgList
 
 let useEnergyPriceEditor (ep: EnergyPrice) =
-    let kind, setKind = React.useState(ep.Kind)
     let fromdate, setFromdate = React.useState(Utils.unixTimeToLocalDateTime(ep.FromDate))
     let price_id, setPrice_id = React.useState(ep.Price_ID)
     let prices, setPrices = React.useState([])
@@ -15,7 +14,6 @@ let useEnergyPriceEditor (ep: EnergyPrice) =
 
     React.useEffect((fun () ->
         let energyPriceFromDate = Utils.unixTimeToLocalDateTime(ep.FromDate)
-        setKind(ep.Kind)
         setFromdate(energyPriceFromDate)
         setPrice_id(ep.Price_ID)
         setPlace_id(ep.Place_ID)
@@ -47,14 +45,12 @@ let useEnergyPriceEditor (ep: EnergyPrice) =
 
     let fields = [
         DateTimeField { Name = "fromdate"; Value = fromdate; HandleChange = setFromdate }
-        SelectField { Name = "kind"; Value = Constants.EnergyKindToText.[kind]; Offer = Seq.toList Constants.TextToEnergyKind.Keys |> List.map (fun key -> key, key); HandleChange = (fun x -> setKind Constants.TextToEnergyKind.[x]) }
         SelectField { Name = "price_id"; Value = price_id; Offer = prices; HandleChange = setPrice_id }
         SelectField { Name = "place_id"; Value = place_id; Offer = places; HandleChange = setPlace_id }
     ]
 
     let getUpdatedEnergyPrice () = 
         { ep with
-            Kind = kind
             FromDate = Utils.localDateTimeToUnixTime(fromdate)
             Price_ID = price_id
             Place_ID = place_id }
@@ -113,7 +109,6 @@ let PgEnergyPrices() =
 
     let structure: WgListStructure<EnergyPrice> = {
             Headers = [
-                { Label = "kind" ; FlexBasis = 15; DataGetter = fun item -> Constants.EnergyKindToText.[item.Kind] }
                 { Label = "fromdate" ; FlexBasis = 25; DataGetter = fun item -> (Utils.unixTimeToLocalDateTime item.FromDate).ToString("dd.MM.yyyy") }
                 { Label = "price_id" ; FlexBasis = 30; DataGetter = fun item ->
                     match Map.tryFind item.Price_ID memoizedPrices with

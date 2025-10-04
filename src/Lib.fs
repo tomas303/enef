@@ -52,7 +52,6 @@ type Price = {
 
 type EnergyPrice = {
     ID: string
-    Kind: EnergyKind
     FromDate: int64
     Price_ID : string
     Place_ID : string
@@ -209,7 +208,6 @@ module Utils =
 
     let newEnergyPrice () = {
         ID = newID ()
-        Kind = EnergyKind.ElektricityNT
         FromDate = localDateTimeToUnixTime System.DateTime.Now
         Price_ID = ""
         Place_ID = ""
@@ -253,7 +251,6 @@ module Encode =
     let energyprices (ep : EnergyPrice) =
         Encode.object [
             "ID", Encode.string ep.ID
-            "Kind", Encode.int (Constants.EnergyKindToInt.[ep.Kind])
             "FromDate", Encode.int64 ep.FromDate
             "Price_ID", Encode.string ep.Price_ID
             "Place_ID", Encode.string ep.Place_ID
@@ -321,7 +318,6 @@ module Decode =
     let energyprice : Decoder<EnergyPrice> =
         Decode.object (fun fields -> { 
                 ID = fields.Required.At [ "ID" ] Decode.string
-                Kind = fields.Required.At [ "Kind" ] energyKind
                 FromDate = fields.Required.At [ "FromDate" ] Decode.int64
                 Price_ID = fields.Required.At [ "Price_ID" ] Decode.string
                 Place_ID = fields.Required.At [ "Place_ID" ] Decode.string
