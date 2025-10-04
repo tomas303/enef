@@ -28,9 +28,17 @@ type EnergyKind =
     | Water
 
 type PriceType =
-    | Volume
-    | Month
-    | Tax
+    | ComodityPerVolume
+    | DistributionPerVolume
+    | ComodityPerMonth
+    | DistributionPerMonth
+    | OTE
+    | ReservedPower   //before known as electric fuse
+    | POZEPerVolume
+    | POZEPerMonth
+    | SystemServices
+    | ElectricTax
+    | VAT
 
 type Energy = {
     ID : string
@@ -110,30 +118,62 @@ module Constants =
 
     let PriceTypeToText = 
         Map [
-            PriceType.Volume, "Per volume"
-            PriceType.Month, "Monthly"
-            PriceType.Tax, "Tax(%)"
+            ComodityPerVolume, "Comodity per volume"
+            DistributionPerVolume, "Distribution per volume"
+            ComodityPerMonth, "Comodity per month"
+            DistributionPerMonth, "Distribution per month"
+            OTE, "OTE - to market operator"
+            ReservedPower, "Reserved power(earlier electric fuse)"
+            POZEPerVolume, "POZE per volume"
+            POZEPerMonth, "POZE per month"
+            SystemServices, "System services"
+            ElectricTax, "Electric tax"
+            VAT, "VAT(dph)"
         ]
 
     let TextToPriceType = 
         Map [
-            "Per volume", PriceType.Volume
-            "Monthly", PriceType.Month
-            "Tax(%)", PriceType.Tax
+            "Comodity per volume", ComodityPerVolume
+            "Distribution per volume", DistributionPerVolume
+            "Comodity per month", ComodityPerMonth
+            "Distribution per month", DistributionPerMonth
+            "OTE - to market operator", OTE
+            "Reserved power(earlier electric fuse)", ReservedPower
+            "POZE per volume", POZEPerVolume
+            "POZE per month", POZEPerMonth
+            "System services", SystemServices
+            "Electric tax", ElectricTax
+            "VAT(dph)", VAT
         ]
 
     let PriceTypeToInt = 
         Map [
-            PriceType.Volume, 1
-            PriceType.Month, 2
-            PriceType.Tax, 3
+            ComodityPerVolume, 1
+            DistributionPerVolume, 2
+            ComodityPerMonth, 3
+            DistributionPerMonth, 4
+            OTE, 5
+            ReservedPower, 6
+            POZEPerVolume, 7
+            POZEPerMonth, 8
+            SystemServices, 9
+            ElectricTax, 10
+            VAT, 11
         ]
 
     let IntToPriceType = 
         Map [
-            1, PriceType.Volume
-            2, PriceType.Month
-            3, PriceType.Tax
+            1, ComodityPerVolume
+            2, DistributionPerVolume
+            3, ComodityPerMonth
+            4, DistributionPerMonth
+            5, OTE
+            6, ReservedPower
+            7, POZEPerVolume
+            8, POZEPerMonth
+            9, SystemServices
+            10, ElectricTax
+            11, VAT
         ]
 
     let EnergyKindSelection = [for x in TextToEnergyKind.Keys -> (x, x)]
@@ -200,7 +240,7 @@ module Utils =
     let newPrice () = {
         ID = newID ()
         EnergyKind = EnergyKind.ElektricityNT
-        PriceType = PriceType.Volume
+        PriceType = PriceType.ComodityPerVolume
         Value = 0
         Provider_ID = ""
         Name = ""
