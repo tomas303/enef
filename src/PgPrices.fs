@@ -13,6 +13,15 @@ let usePriceEditor (price: Price) =
     let providers, setProviders = React.useState([])
     let name, setName = React.useState(price.Name)
 
+    React.useEffect((fun () ->
+        setEnergyKind(price.EnergyKind)
+        setPriceType(price.PriceType)
+        setName(price.Name)
+        setProvider_id(price.Provider_ID)
+        setValue(price.Value)
+    ), [| box price |])  // ← Depend on entire energy object
+
+
     React.useEffectOnce(fun () -> 
         async {
             let! items = Lib.Api.Providers.loadAll()
