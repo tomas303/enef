@@ -7,6 +7,7 @@ open PgPlaces
 open PgProviders
 open PgPrices
 open PgEnergyPrices
+open PgPriceSeries
 open PgTest
 
 [<RequireQualifiedAccess>]
@@ -18,6 +19,7 @@ type Page =
     | Places
     | Providers
     | Prices
+    | PriceSeries
     | Test
     
 let renderMenuNavItem (label : string) (handler : unit -> unit) =
@@ -45,6 +47,7 @@ let App () =
         renderMenuNavItem "Prices" (fun _ -> setCurrentPage Page.Prices)
         renderMenuNavItem "Places" (fun _ -> setCurrentPage Page.Places)
         renderMenuNavItem "Providers" (fun _ -> setCurrentPage Page.Providers)
+        renderMenuNavItem "PriceSeries" (fun _ -> setCurrentPage Page.PriceSeries)
         renderMenuNavItem "Test" (fun _ -> setCurrentPage Page.Test)]
 
     let page =
@@ -56,6 +59,7 @@ let App () =
         | Page.Places -> PgPlaces ()
         | Page.Providers -> PgProviders ()
         | Page.Prices -> PgPrices ()
+        | Page.PriceSeries -> PgPriceSeries ()
         | Page.Test -> PgTest ()
 
     Html.div [

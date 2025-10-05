@@ -98,6 +98,17 @@ let WgSelect (fieldName: string) (selectedId: string) (onSelect: string -> unit)
     ]
 
 [<ReactComponent>]
+let WgButton (name: string) (onClick: unit -> unit)  =
+    Html.xbutton [
+        prop.key name
+        prop.buttonText name
+        prop.onClick (fun _ -> onClick())
+        prop.classes [ "edit-item" ]
+    ]
+
+
+
+[<ReactComponent>]
 let WgEditFields fields =
     let edits =
         fields

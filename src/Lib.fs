@@ -61,9 +61,21 @@ type Price = {
 type EnergyPrice = {
     ID: string
     FromDate: int64
-    Price_ID : string
-    Place_ID : string
+    Price_ID: string
+    Place_ID: string
 }
+
+type GasPriceSerie = {
+    Place_ID: string
+    SliceStart: int64
+    SliceEnd: int64
+    AmountMwh: float
+    Months: float
+    UnregulatedPrice: float
+    RegulatedPrice: float
+    TotalPrice: float
+}
+
 
 module Dbg =
     
@@ -364,6 +376,20 @@ module Decode =
             }
         )
 
+    let gaspriceserie : Decoder <GasPriceSerie> =
+        Decode.object (fun fields -> { 
+                Place_ID = fields.Required.At [ "Place_ID" ] Decode.string
+                SliceStart = fields.Required.At [ "SliceStart" ] Decode.int64
+                SliceEnd = fields.Required.At [ "SliceEnd" ] Decode.int64
+                AmountMwh = fields.Required.At [ "AmountMwh" ] Decode.float
+                Months = fields.Required.At [ "Months" ] Decode.float
+                UnregulatedPrice = fields.Required.At [ "UnregulatedPrice" ] Decode.float
+                RegulatedPrice = fields.Required.At [ "RegulatedPrice" ] Decode.float
+                TotalPrice = fields.Required.At [ "TotalPrice" ] Decode.float
+            }
+        )
+
+
 module Api =
 
     [<Emit("import.meta.env")>]
@@ -492,4 +518,8 @@ module Api =
 
         let loadPageNext (fromdate : int64) (id: string) (limit: int) =
             get $"{url}/energyprices/page/next?fromdate={fromdate}&id={id}&limit={limit}" (Decode.list Decode.energyprice)
+
+    module PriceSeries =
+        let loadGas  (fromdate : int64) (todate: int64) =
+            get $"{url}/gas-prices?fromdate={fromdate}&todate={todate}" (Decode.list Decode.gaspriceserie)
 

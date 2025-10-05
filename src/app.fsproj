@@ -3,7 +3,8 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
-  <ItemGroup><Compile Include="Extensions.fs" />
+  <ItemGroup>
+    <Compile Include="Extensions.fs" />
     <Compile Include="CustomElements.fs" />
     <Compile Include="Lib.fs" />
     <Compile Include="WgEdit.fs" />
@@ -13,10 +14,10 @@
     <Compile Include="WgAgenda.fs" />
     <Compile Include="PgPlaces.fs" />
     <Compile Include="PgProviders.fs" />
-    
-    <Compile Include="PgEnergies.fs" /><Compile Include="PgEnergyPrices.fs" />
+    <Compile Include="PgEnergies.fs" />
+    <Compile Include="PgEnergyPrices.fs" />
     <Compile Include="PgPrices.fs" />
-    
+    <Compile Include="pgPriceSeries.fs" />
     <Compile Include="PgTest.fs" />
     <Compile Include="App.fs" />
     <Compile Include="Main.fs" />
@@ -28,6 +29,7 @@
     <PackageReference Include="Fable.Elmish.React" Version="4.0.0" />
     <PackageReference Include="Fable.SimpleHttp" Version="3.6.0" />
     <PackageReference Include="Feliz" Version="2.9.0" />
+    <PackageReference Include="Feliz.Recharts" Version="4.3.0" />
     <PackageReference Include="Feliz.UseDeferred" Version="2.0.0" />
     <PackageReference Include="Feliz.UseElmish" Version="2.5.0" />
     <PackageReference Include="Feliz.UseListener" Version="0.6.3" />
