@@ -1,0 +1,35 @@
+version: '3'
+
+tasks:
+  default:
+    desc: List all available tasks
+    cmds:
+      - task --list
+    silent: true
+
+  debug:
+    desc: Start development server with hot-reload (replaces vitedebug.sh)
+    cmds:
+      - dotnet fable watch src --verbose --run npx vite
+    silent: false
+
+  build:
+    desc: Build production bundle (replaces vitebuild.sh)
+    cmds:
+      - dotnet fable src --run npx vite build
+    silent: false
+
+  build:dev:
+    desc: Build development bundle with source maps (replaces vitebuild.sh fordebug)
+    env:
+      NODE_ENV: development
+    cmds:
+      - dotnet fable src --run npx vite build --mode development --sourcemap --minify false
+    silent: false
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf dist
+      - dotnet clean src
+    silent: false
