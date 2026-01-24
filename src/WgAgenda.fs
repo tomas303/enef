@@ -7,6 +7,7 @@ open Browser.Dom
 open WgList
 open WgEdit
 open CustomElements
+open Lib
 
 module FocusManager =
     
@@ -188,12 +189,16 @@ module GridBuffer =
 
     let move data delta fetchBefore fetchAfter = async {
         let newData = applyDelta data delta
+        Dbg.wl $"move: delta={delta} => cursor={newData.Cursor}, top={newData.Top}, bottom={newData.Bottom}"
         let! newData =
             if newData.Top < 0 then
+                Dbg.wl "reading before"
                 readBefore newData fetchBefore
             else if newData.Bottom > newData.Data.Length - 1 then
+                Dbg.wl "reading after"
                 readAfter newData fetchAfter
             else
+                Dbg.wl "no read needed"
                 async { return newData }
         let newData = correct newData
         return newData
@@ -340,7 +345,6 @@ let WgAgenda (props:{|
 
     // ===== HOOKS (Root Level) =====
     let buffer, setBuffer = React.useState(GridBuffer.create 15 100)
-    let deltaMove, setDeltaMove = React.useState(1)
     let state, setState = React.useState State.Browsing
     let lastError, setLastError = React.useState(None)
 
@@ -352,6 +356,23 @@ let WgAgenda (props:{|
         | _ -> defaultItem
     
     let fields, getUpdatedItem = props.useEditor currentItem
+
+    let handleMove =
+        React.useDeferredCallback(
+            (fun delta -> GridBuffer.move buffer delta props.FetchBefore props.FetchAfter),
+            (fun x ->
+                match x with
+                | Deferred.HasNotStartedYet -> ()
+                | Deferred.InProgress -> setState State.Shifting
+                | Deferred.Failed exn -> 
+                    setState State.Browsing
+                    setLastError (Some exn.Message)
+                | Deferred.Resolved newBuffer ->
+                    setBuffer newBuffer
+                    setLastError newBuffer.Lasterror
+                    setState State.Browsing
+            )
+        )
 
     let handleSave =
         React.useDeferredCallback(props.ItemSave, 
@@ -380,21 +401,16 @@ let WgAgenda (props:{|
             )
         )
 
+    // Initialize data on mount
     React.useEffect((fun () ->
-        async {
-            if state = State.Browsing && deltaMove <> 0 then
-                let! newBuffer = GridBuffer.move buffer deltaMove props.FetchBefore props.FetchAfter
-                setBuffer newBuffer
-                setDeltaMove 0
-                setLastError newBuffer.Lasterror
-        } |> Async.StartImmediate
-        ), [| box deltaMove |])
+        handleMove(1)
+    ), [||])  // Empty dependency array ensures this runs only once
 
     let actions: AgendaAction list = [
-        { Key = {| Shortcut = "PageUp"; Alt = false |}; Label = "PgUp"; Handler = (fun () -> if state = State.Browsing then setDeltaMove(buffer.ViewSize * -1)); Enabled = true }
-        { Key = {| Shortcut = "PageDown"; Alt = false |}; Label = "PgDown"; Handler = (fun () -> if state = State.Browsing then setDeltaMove(buffer.ViewSize)); Enabled = true }
-        { Key = {| Shortcut = "ArrowUp"; Alt = false |}; Label = "Up"; Handler = (fun () -> if state = State.Browsing then setDeltaMove(-1)); Enabled = true }
-        { Key = {| Shortcut = "ArrowDown"; Alt = false |}; Label = "Down"; Handler = (fun () -> if state = State.Browsing then setDeltaMove(1)); Enabled = true }
+        { Key = {| Shortcut = "PageUp"; Alt = false |}; Label = "PgUp"; Handler = (fun () -> if state = State.Browsing then handleMove(buffer.ViewSize * -1)); Enabled = state = State.Browsing }
+        { Key = {| Shortcut = "PageDown"; Alt = false |}; Label = "PgDown"; Handler = (fun () -> if state = State.Browsing then handleMove(buffer.ViewSize)); Enabled = state = State.Browsing }
+        { Key = {| Shortcut = "ArrowUp"; Alt = false |}; Label = "Up"; Handler = (fun () -> if state = State.Browsing then handleMove(-1)); Enabled = state = State.Browsing }
+        { Key = {| Shortcut = "ArrowDown"; Alt = false |}; Label = "Down"; Handler = (fun () -> if state = State.Browsing then handleMove(1)); Enabled = state = State.Browsing }
         { Key = {| Shortcut = "n"; Alt = true |}; Label = "Add"; Handler = (fun () -> if state = State.Browsing then setState State.Adding); Enabled = state = State.Browsing }
         { Key = {| Shortcut = "e"; Alt = true |}; Label = "Edit"; Handler = (fun () -> if state = State.Browsing && GridBuffer.cursorValid buffer then setState State.Editing); Enabled = state = State.Browsing && GridBuffer.cursorValid buffer }
     ]
