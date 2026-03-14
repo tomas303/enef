@@ -4,9 +4,10 @@ module App
 open Feliz
 open PgEnergies
 open PgPlaces
+open PgPlaceProducts
 open PgProviders
-open PgPrices
-open PgEnergyPrices
+open PgProducts
+open PgProductPrices
 open PgPriceSeries
 open PgTest
 
@@ -15,8 +16,10 @@ type Page =
     | Home
     | Pricelists
     | Energies
-    | EnergyPrices
+    | Products
+    | ProductPrices
     | Places
+    | PlaceProducts
     | Providers
     | Prices
     | PriceSeries
@@ -43,7 +46,8 @@ let App () =
     let menus = [
         renderMenuNavItem "Home" (fun _ -> setCurrentPage Page.Home)
         renderMenuNavItem "Energies" (fun _ -> setCurrentPage Page.Energies)
-        renderMenuNavItem "Energy prices" (fun _ -> setCurrentPage Page.EnergyPrices)
+        renderMenuNavItem "Products" (fun _ -> setCurrentPage Page.Products)
+        renderMenuNavItem "Product prices" (fun _ -> setCurrentPage Page.ProductPrices)
         renderMenuNavItem "Prices" (fun _ -> setCurrentPage Page.Prices)
         renderMenuNavItem "Places" (fun _ -> setCurrentPage Page.Places)
         renderMenuNavItem "Providers" (fun _ -> setCurrentPage Page.Providers)
@@ -55,10 +59,12 @@ let App () =
         | Page.Home -> PgEnergies ()
         | Page.Pricelists -> Html.div "Pricelists - to be done"
         | Page.Energies -> PgEnergies ()
-        | Page.EnergyPrices -> PgEnergyPrices ()
+        | Page.Products -> PgProducts ()
+        | Page.ProductPrices -> PgProductPrices ()
         | Page.Places -> PgPlaces ()
+        | Page.PlaceProducts -> PgPlaceProducts ()
         | Page.Providers -> PgProviders ()
-        | Page.Prices -> PgPrices ()
+        | Page.Prices -> PgProducts ()
         | Page.PriceSeries -> PgPriceSeries ()
         | Page.Test -> PgTest ()
 

@@ -15,8 +15,9 @@
     <Compile Include="PgPlaces.fs" />
     <Compile Include="PgProviders.fs" />
     <Compile Include="PgEnergies.fs" />
-    <Compile Include="PgEnergyPrices.fs" />
-    <Compile Include="PgPrices.fs" />
+    <Compile Include="PgProducts.fs" />
+    <Compile Include="PgProductPrices.fs" />
+    <Compile Include="PgPlaceProducts.fs" />
     <Compile Include="pgPriceSeries.fs" />
     <Compile Include="PgTest.fs" />
     <Compile Include="App.fs" />

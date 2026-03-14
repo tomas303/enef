@@ -49,20 +49,26 @@ type Energy = {
     Place_ID : string
 }
 
-type Price = {
+type Product = {
     ID: string
     EnergyKind: EnergyKind
     PriceType: PriceType
-    Value: int
     Provider_ID: string
     Name: string
 }
 
-type EnergyPrice = {
+type ProductPrice = {
+    ID: string
+    Product_ID: string
+    FromDate: int64
+    Value: int
+}
+
+type PlaceProduct = {
     ID: string
     FromDate: int64
-    Price_ID: string
     Place_ID: string
+    Product_ID: string
 }
 
 type GasPriceSerie = {
@@ -249,19 +255,25 @@ module Utils =
         Name = ""
     }
 
-    let newPrice () = {
+    let newProduct () = {
         ID = newID ()
         EnergyKind = EnergyKind.ElektricityNT
         PriceType = PriceType.ComodityPerVolume
-        Value = 0
         Provider_ID = ""
         Name = ""
     }
 
-    let newEnergyPrice () = {
+    let newProductPrice () = {
+        ID = newID ()
+        Product_ID = ""
+        FromDate = localDateTimeToUnixTime System.DateTime.Now
+        Value = 0
+    }
+
+    let newPlaceProduct () = {
         ID = newID ()
         FromDate = localDateTimeToUnixTime System.DateTime.Now
-        Price_ID = ""
+        Product_ID = ""
         Place_ID = ""
     }
 
@@ -290,22 +302,29 @@ module Encode =
             "Name", Encode.string pr.Name
         ]
 
-    let price (pr : Price) =
+    let product (p : Product) =
         Encode.object [
-            "ID", Encode.string pr.ID
-            "EnergyKind", Encode.int (Constants.EnergyKindToInt.[pr.EnergyKind])
-            "PriceType", Encode.int (Constants.PriceTypeToInt.[pr.PriceType])
-            "Value", Encode.int pr.Value
-            "Provider_ID", Encode.string pr.Provider_ID
-            "Name", Encode.string pr.Name
+            "ID", Encode.string p.ID
+            "EnergyKind", Encode.int (Constants.EnergyKindToInt.[p.EnergyKind])
+            "PriceType", Encode.int (Constants.PriceTypeToInt.[p.PriceType])
+            "Provider_ID", Encode.string p.Provider_ID
+            "Name", Encode.string p.Name
         ]
 
-    let energyprices (ep : EnergyPrice) =
+    let productprice (pp : ProductPrice) =
         Encode.object [
-            "ID", Encode.string ep.ID
-            "FromDate", Encode.int64 ep.FromDate
-            "Price_ID", Encode.string ep.Price_ID
-            "Place_ID", Encode.string ep.Place_ID
+            "ID", Encode.string pp.ID
+            "Product_ID", Encode.string pp.Product_ID
+            "FromDate", Encode.int64 pp.FromDate
+            "Value", Encode.int pp.Value
+        ]
+
+    let placeproduct (pp : PlaceProduct) =
+        Encode.object [
+            "ID", Encode.string pp.ID
+            "FromDate", Encode.int64 pp.FromDate
+            "Place_ID", Encode.string pp.Place_ID
+            "Product_ID", Encode.string pp.Product_ID
         ]
 
 module Decode =
@@ -356,27 +375,35 @@ module Decode =
             }
         )
 
-    let price : Decoder<Price> =
+    let product : Decoder<Product> =
         Decode.object (fun fields -> { 
                 ID = fields.Required.At [ "ID" ] Decode.string
                 EnergyKind = fields.Required.At [ "EnergyKind" ] energyKind
                 PriceType = fields.Required.At [ "PriceType" ] priceType
-                Value = fields.Required.At [ "Value" ] Decode.int
                 Provider_ID = fields.Required.At [ "Provider_ID" ] Decode.string
                 Name = fields.Required.At [ "Name" ] Decode.string
             }
         )
 
-    let energyprice : Decoder<EnergyPrice> =
+    let productprice : Decoder<ProductPrice> =
         Decode.object (fun fields -> { 
                 ID = fields.Required.At [ "ID" ] Decode.string
+                Product_ID = fields.Required.At [ "Product_ID" ] Decode.string
                 FromDate = fields.Required.At [ "FromDate" ] Decode.int64
-                Price_ID = fields.Required.At [ "Price_ID" ] Decode.string
-                Place_ID = fields.Required.At [ "Place_ID" ] Decode.string
+                Value = fields.Required.At [ "Value" ] Decode.int
             }
         )
 
-    let gaspriceserie : Decoder <GasPriceSerie> =
+    let placeproduct : Decoder<PlaceProduct> =
+        Decode.object (fun fields -> { 
+                ID = fields.Required.At [ "ID" ] Decode.string
+                FromDate = fields.Required.At [ "FromDate" ] Decode.int64
+                Place_ID = fields.Required.At [ "Place_ID" ] Decode.string
+                Product_ID = fields.Required.At [ "Product_ID" ] Decode.string
+            }
+        )
+
+    let gaspriceserie : Decoder<GasPriceSerie> =
         Decode.object (fun fields -> { 
                 Place_ID = fields.Required.At [ "Place_ID" ] Decode.string
                 SliceStart = fields.Required.At [ "SliceStart" ] Decode.int64
@@ -478,14 +505,15 @@ module Api =
             | _ -> return makeError status responseText
         }
 
-    module Prices =
+    module Products =
+        let ns = "products"
         let loadAll () =
-            get $"{url}/prices" (Decode.list Decode.price)
+            get $"{url}/{ns}" (Decode.list Decode.product)
 
-        let saveItem (item : Price) = async {
-            let json = Encode.price item
+        let saveItem (item : Product) = async {
+            let json = Encode.product item
             let body = Encode.toString 2 json
-            let! (status, responseText) = Http.post $"{url}/prices" body
+            let! (status, responseText) = Http.post $"{url}/{ns}" body
             match status with
             | 200 -> return Ok item
             | 201 -> return Ok item
@@ -493,31 +521,52 @@ module Api =
         }
 
         let loadPagePrev (name : string) (id: string) (limit: int) =
-            get $"{url}/prices/page/prev?name={name}&id={id}&limit={limit}" (Decode.list Decode.price)
+            get $"{url}/{ns}/page/prev?name={name}&id={id}&limit={limit}" (Decode.list Decode.product)
 
         let loadPageNext (name : string) (id: string) (limit: int) =
-            get $"{url}/prices/page/next?name={name}&id={id}&limit={limit}" (Decode.list Decode.price)
+            get $"{url}/{ns}/page/next?name={name}&id={id}&limit={limit}" (Decode.list Decode.product)
 
-
-    module EnergyPrices =
+    module ProductPrices =
+        let ns = "productprices"
         let loadAll () =
-            get $"{url}/energyprices" (Decode.list Decode.energyprice)
+            get $"{url}/{ns}" (Decode.list Decode.productprice)
 
-        let saveItem (item : EnergyPrice) = async {
-            let json = Encode.energyprices item
+        let saveItem (item : ProductPrice) = async {
+            let json = Encode.productprice item
             let body = Encode.toString 2 json
-            let! status, responseText = Http.post $"{url}/energyprices" body
+            let! (status, responseText) = Http.post $"{url}/{ns}" body
             match status with
             | 200 -> return Ok item
             | 201 -> return Ok item
             | _ -> return makeError status responseText
         }
 
-        let loadPagePrev (fromdate : int64) (id: string) (limit: int) =
-            get $"{url}/energyprices/page/prev?fromdate={fromdate}&id={id}&limit={limit}" (Decode.list Decode.energyprice)
+        let loadPagePrev (fromdate: int64) (id: string) (limit: int) =
+            get $"{url}/{ns}/page/prev?fromdate={fromdate}&id={id}&limit={limit}" (Decode.list Decode.productprice)
 
-        let loadPageNext (fromdate : int64) (id: string) (limit: int) =
-            get $"{url}/energyprices/page/next?fromdate={fromdate}&id={id}&limit={limit}" (Decode.list Decode.energyprice)
+        let loadPageNext (fromdate: int64) (id: string) (limit: int) =
+            get $"{url}/{ns}/page/next?fromdate={fromdate}&id={id}&limit={limit}" (Decode.list Decode.productprice)
+
+    module PlaceProducts =
+        let ns = "placeproducts"
+        let loadAll () =
+            get $"{url}/{ns}" (Decode.list Decode.placeproduct)
+
+        let saveItem (item : PlaceProduct) = async {
+            let json = Encode.placeproduct item
+            let body = Encode.toString 2 json
+            let! status, responseText = Http.post $"{url}/{ns}" body
+            match status with
+            | 200 -> return Ok item
+            | 201 -> return Ok item
+            | _ -> return makeError status responseText
+        }
+
+        let loadPagePrev (fromdate: int64) (id: string) (limit: int) =
+            get $"{url}/{ns}/page/prev?fromdate={fromdate}&id={id}&limit={limit}" (Decode.list Decode.placeproduct)
+
+        let loadPageNext (fromdate: int64) (id: string) (limit: int) =
+            get $"{url}/{ns}/page/next?fromdate={fromdate}&id={id}&limit={limit}" (Decode.list Decode.placeproduct)
 
     module PriceSeries =
         let loadGas  (fromdate : int64) (todate: int64) =

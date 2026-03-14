@@ -20,7 +20,7 @@ let useEnergyEditor (energy: Energy) =
         setPlace_id(energy.Place_ID)
     ), [| box energy |])  // ← Depend on entire energy object
 
-    React.useEffect((fun () -> (
+    React.useEffectOnce(fun () ->
         async {
             let! items = Lib.Api.Places.loadAll()
             match items with
@@ -30,7 +30,7 @@ let useEnergyEditor (energy: Energy) =
             | Error _ ->
                 setPlaces []
         } |> Async.StartImmediate
-        )), [| |])
+    )
 
     let fields = [
         DateTimeField { Name = "created"; Value = created; HandleChange = setCreated }

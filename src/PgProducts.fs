@@ -1,0 +1,110 @@
+module PgProducts
+
+open Feliz
+open Lib
+open WgEdit
+open WgList
+
+let useProductEditor (product: Product) =
+    let energyKind, setEnergyKind = React.useState(product.EnergyKind)
+    let priceType, setPriceType = React.useState(product.PriceType)
+    let provider_id, setProvider_id = React.useState(product.Provider_ID)
+    let providers, setProviders = React.useState([])
+    let name, setName = React.useState(product.Name)
+
+    React.useEffect((fun () ->
+        setEnergyKind(product.EnergyKind)
+        setPriceType(product.PriceType)
+        setName(product.Name)
+        setProvider_id(product.Provider_ID)
+    ), [| box product |])  // ← Depend on entire energy object
+
+
+    React.useEffectOnce(fun () -> 
+        async {
+            let! items = Lib.Api.Providers.loadAll()
+            match items with
+            | Ok content ->
+                let newProviders = content |> List.map (fun x -> x.ID, x.Name)
+                setProviders newProviders
+            | Error _ ->
+                setProviders []
+        } |> Async.StartImmediate
+    )
+
+    let fields = [
+        SelectField { Name = "energyKind" ; Value = Constants.EnergyKindToText[energyKind]; Offer = Constants.EnergyKindSelection; HandleChange = (fun x -> setEnergyKind Constants.TextToEnergyKind[x]) }
+        SelectField { Name = "priceType" ; Value = Constants.PriceTypeToText[priceType]; Offer = Constants.PriceTypeSelection; HandleChange = (fun x -> setPriceType Constants.TextToPriceType[x]) }
+        SelectField { Name = "provider_id" ; Value = provider_id; Offer = providers; HandleChange = setProvider_id }
+        StrField { Name = "name" ; Value = name; HandleChange = setName }
+    ]
+
+    let getUpdatedProduct () = 
+        { product with
+            EnergyKind = energyKind 
+            PriceType = priceType
+            // Value = value
+            Provider_ID = provider_id
+            Name = name }
+
+    fields, getUpdatedProduct
+
+
+[<ReactComponent>]
+let PgProducts() =
+
+    let (providers, setProviders) = React.useState(Map.empty)
+
+    React.useEffectOnce(fun () -> 
+        async {
+            let! items = Api.Providers.loadAll()
+            match items with
+            | Ok content -> 
+                Dbg.wl $"providers: {content}"
+                let newProducts = content |> List.map (fun x -> x.ID, x.Name) |> Map.ofList
+                setProviders newProducts
+            | Error _ -> 
+                setProviders Map.empty
+        } |> Async.StartImmediate
+    )
+
+    let memoizedProviders = React.useMemo((fun () -> providers), [| providers |])
+
+    let fetchBefore (price: Product option) count =
+        let name, id =
+            match price with
+                | Some x -> x.Name, x.ID
+                | None -> "", ""
+        Api.Products.loadPagePrev name id count
+
+
+    let fetchAfter (price: Product option) count =
+        let name, id =
+            match price with
+                | Some x -> x.Name, x.ID
+                | None -> "", ""
+        Api.Products.loadPageNext name id count
+
+    let structure = {
+            Headers = [
+                { Label = "name" ; FlexBasis = 50; DataGetter = fun (item: Product) -> item.Name }
+                { Label = "provider_id" ; FlexBasis = 30; DataGetter = fun (item: Product) -> 
+                    match Map.tryFind item.Provider_ID memoizedProviders with
+                    | Some name -> name
+                    | None -> "Unknown Provider" }
+                { Label = "priceType" ; FlexBasis = 30; DataGetter = fun (item: Product) -> Constants.PriceTypeToText[item.PriceType] }
+                { Label = "kind" ; FlexBasis = 30; DataGetter = fun (item: Product) -> Constants.EnergyKindToText[item.EnergyKind] }
+            ]
+            IdGetter = fun (item: Product) -> item.ID
+        }
+
+    let props = {|
+            Structure = structure
+            useEditor = fun price -> useProductEditor price
+            ItemNew = Utils.newProduct
+            ItemSave = Api.Products.saveItem
+            FetchBefore = fetchBefore
+            FetchAfter = fetchAfter
+        |}
+
+    WgAgenda.WgAgenda props
