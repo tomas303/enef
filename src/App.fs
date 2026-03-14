@@ -21,7 +21,6 @@ type Page =
     | Places
     | PlaceProducts
     | Providers
-    | Prices
     | PriceSeries
     | Test
     
@@ -48,7 +47,6 @@ let App () =
         renderMenuNavItem "Energies" (fun _ -> setCurrentPage Page.Energies)
         renderMenuNavItem "Products" (fun _ -> setCurrentPage Page.Products)
         renderMenuNavItem "Product prices" (fun _ -> setCurrentPage Page.ProductPrices)
-        renderMenuNavItem "Prices" (fun _ -> setCurrentPage Page.Prices)
         renderMenuNavItem "Places" (fun _ -> setCurrentPage Page.Places)
         renderMenuNavItem "Providers" (fun _ -> setCurrentPage Page.Providers)
         renderMenuNavItem "PriceSeries" (fun _ -> setCurrentPage Page.PriceSeries)
@@ -64,7 +62,6 @@ let App () =
         | Page.Places -> PgPlaces ()
         | Page.PlaceProducts -> PgPlaceProducts ()
         | Page.Providers -> PgProviders ()
-        | Page.Prices -> PgProducts ()
         | Page.PriceSeries -> PgPriceSeries ()
         | Page.Test -> PgTest ()
 
