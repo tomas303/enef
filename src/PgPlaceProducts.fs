@@ -4,13 +4,14 @@ open Feliz
 open Lib
 open WgEdit
 open WgList
+open Hooks
 
 let usePlaceProductEditor (ep: PlaceProduct) =
     let fromdate, setFromdate = React.useState(Utils.unixTimeToLocalDateTime ep.FromDate)
     let product_id, setPrice_id = React.useState ep.Product_ID
-    let products, setProducts = React.useState []
+    let products = useProducts()
     let place_id, setPlace_id = React.useState ep.Place_ID
-    let places, setPlaces = React.useState []
+    let places = usePlaces()
 
     React.useEffect((fun () ->
         let energyPriceFromDate = Utils.unixTimeToLocalDateTime ep.FromDate
@@ -18,30 +19,6 @@ let usePlaceProductEditor (ep: PlaceProduct) =
         setPrice_id ep.Product_ID
         setPlace_id ep.Place_ID
     ), [| box ep |])
-
-    React.useEffect((fun () -> 
-        async {
-            let! items = Lib.Api.Places.loadAll()
-            match items with
-            | Ok content ->
-                let newPlaces = content |> List.map (fun x -> x.ID, x.Name)
-                setPlaces newPlaces
-            | Error _ ->
-                setPlaces []
-        } |> Async.StartImmediate
-        ), [| |])
-
-    React.useEffect((fun () -> 
-        async {
-            let! items = Lib.Api.Products.loadAll()
-            match items with
-            | Ok content ->
-                let newProducts = content |> List.map (fun x -> x.ID, x.Name)
-                setProducts newProducts
-            | Error _ ->
-                setProducts []
-        } |> Async.StartImmediate
-        ), [| |])
 
     let fields = [
         DateTimeField { Name = "fromdate"; Value = fromdate; HandleChange = setFromdate }
@@ -61,37 +38,8 @@ let usePlaceProductEditor (ep: PlaceProduct) =
 [<ReactComponent>]
 let PgPlaceProducts() =
 
-    let places, setPlaces = React.useState Map.empty
-    let prices, setPrices = React.useState Map.empty
-
-    React.useEffectOnce(fun () ->
-        let fetchPlaces = async {
-            let! items = Api.Places.loadAll()
-            match items with
-            | Ok content ->
-                let newPlaces = content |> List.map (fun x -> x.ID, x.Name) |> Map.ofList
-                setPlaces newPlaces
-            | Error _ ->
-                setPlaces Map.empty
-        }
-        Async.StartImmediate fetchPlaces
-    )
-
-    React.useEffectOnce(fun () ->
-        let fetchPrices = async {
-            let! items = Api.Products.loadAll()
-            match items with
-            | Ok content ->
-                let newPrices = content |> List.map (fun x -> x.ID, x.Name) |> Map.ofList
-                setPrices newPrices
-            | Error _ ->
-                setPrices Map.empty
-        }
-        Async.StartImmediate fetchPrices
-    )
-
-    let memoizedPlaces = React.useMemo((fun () -> places), [| places |])
-    let memoizedProducts = React.useMemo((fun () -> prices), [| prices |])
+    let placesMap = usePlaces() |> Map.ofList
+    let productsMap = useProducts() |> Map.ofList
 
     let fetchBefore placeProduct count =
         let fromDate, id =
@@ -111,11 +59,11 @@ let PgPlaceProducts() =
             Headers = [
                 { Label = "fromdate" ; FlexBasis = 25; DataGetter = fun item -> (Utils.unixTimeToLocalDateTime item.FromDate).ToString("dd.MM.yyyy") }
                 { Label = "product_id" ; FlexBasis = 30; DataGetter = fun item ->
-                    match Map.tryFind item.Product_ID memoizedProducts with
+                    match Map.tryFind item.Product_ID productsMap with
                     | Some name -> name
                     | None -> "Unknown product" }
                 { Label = "place_id" ; FlexBasis = 30; DataGetter = fun item ->
-                    match Map.tryFind item.Place_ID memoizedPlaces with
+                    match Map.tryFind item.Place_ID placesMap with
                     | Some name -> name
                     | None -> "Unknown place" }
             ]
