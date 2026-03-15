@@ -4,13 +4,14 @@ open Feliz
 open Lib
 open WgEdit
 open WgList
+open Hooks
 
 let useEnergyEditor (energy: Energy) =
     let (kind, setKind) = React.useState(energy.Kind)
     let (created, setCreated) = React.useState(Utils.unixTimeToLocalDateTime(energy.Created))
     let (amount, setAmount) = React.useState(energy.Amount)
     let (place_id, setPlace_id) = React.useState(energy.Place_ID)
-    let (places, setPlaces) = React.useState([])
+    let places = usePlaces().Data
 
     React.useEffect((fun () ->
         let energyCreated = Utils.unixTimeToLocalDateTime(energy.Created)
@@ -18,19 +19,7 @@ let useEnergyEditor (energy: Energy) =
         setCreated(energyCreated)
         setAmount(energy.Amount)
         setPlace_id(energy.Place_ID)
-    ), [| box energy |])  // ← Depend on entire energy object
-
-    React.useEffectOnce(fun () ->
-        async {
-            let! items = Lib.Api.Places.loadAll()
-            match items with
-            | Ok content ->
-                let newPlaces = content |> List.map (fun x -> x.ID, x.Name)
-                setPlaces newPlaces
-            | Error _ ->
-                setPlaces []
-        } |> Async.StartImmediate
-    )
+    ), [| box energy |])
 
     let fields = [
         DateTimeField { Name = "created"; Value = created; HandleChange = setCreated }
@@ -63,22 +52,7 @@ let EditEnergy (energy: Energy) onSave onCancel =
 [<ReactComponent>]
 let PgEnergies() =
 
-    let (places, setPlaces) = React.useState(Map.empty)
-
-    React.useEffectOnce(fun () ->
-        let fetchPlaces = async {
-            let! items = Lib.Api.Places.loadAll()
-            match items with
-            | Ok content ->
-                let newPlaces = content |> List.map (fun x -> x.ID, x.Name) |> Map.ofList
-                setPlaces newPlaces
-            | Error _ ->
-                setPlaces Map.empty
-        }
-        Async.StartImmediate fetchPlaces
-    )
-
-    let memoizedPlaces = React.useMemo((fun () -> places), [| places |])
+    let placesMap = usePlaces().Data |> Map.ofList
 
 
     let fetchBefore energy count =
@@ -102,7 +76,7 @@ let PgEnergies() =
                 { Label = "created" ; FlexBasis = 25; DataGetter = fun item -> (Utils.unixTimeToLocalDateTime item.Created).ToString("dd.MM.yyyy") }
                 { Label = "amount" ; FlexBasis = 25; DataGetter = fun item -> $"{item.Amount} {Constants.EnergyKindToUnit.[item.Kind]}" }
                 { Label = "place_id" ; FlexBasis = 10; DataGetter = fun item ->
-                    match Map.tryFind item.Place_ID memoizedPlaces with
+                    match Map.tryFind item.Place_ID placesMap with
                     | Some name -> name
                     | None -> "Unknown place" }
             ]

@@ -4,6 +4,7 @@ open Feliz
 open Lib
 open WgEdit
 open WgList
+open Hooks
 
 let usePlaceEditor (place: Place) =
     let (circuitBreakerCurrent, setCircuitBreakerCurrent) = React.useState(place.CircuitBreakerCurrent)
@@ -48,11 +49,19 @@ let PgPlaces() =
             IdGetter = fun (item: Place) -> item.ID
         }
 
+    let placesCtx = usePlaces()
+
+    let saveAndRefresh item = async {
+        let! result = Api.Places.saveItem item
+        placesCtx.Refresh()
+        return result
+    }
+
     let props = {|
             Structure = structure
             useEditor = fun place -> usePlaceEditor place
             ItemNew = Utils.newPlace
-            ItemSave = Api.Places.saveItem
+            ItemSave = saveAndRefresh
             FetchBefore = fetchBefore
             FetchAfter = fetchAfter
         |}

@@ -9,7 +9,7 @@ open Hooks
 let useProductPriceEditor (pp: ProductPrice) =
     let fromdate, setFromdate = React.useState(Utils.unixTimeToLocalDateTime pp.FromDate)
     let product_id, setProduct_id = React.useState pp.Product_ID
-    let products = useProducts()
+    let products = useProducts().Data
     let value, setValue = React.useState pp.Value
 
     React.useEffect((fun () ->
@@ -37,7 +37,7 @@ let useProductPriceEditor (pp: ProductPrice) =
 [<ReactComponent>]
 let PgProductPrices() =
 
-    let productsMap = useProducts() |> Map.ofList
+    let productsMap = useProducts().Data |> Map.ofList
 
     let fetchBefore (productPrice: ProductPrice option) count =
         let fromDate, id =

@@ -4,6 +4,7 @@ open Feliz
 open Lib
 open WgEdit
 open WgList
+open Hooks
 
 let useProviderEditor (provider: Provider) =
     let (name, setName) = React.useState(provider.Name)
@@ -43,11 +44,19 @@ let PgProviders() =
             IdGetter = fun (item: Provider) -> item.ID
         }
 
+    let providersCtx = useProviders()
+
+    let saveAndRefresh item = async {
+        let! result = Api.Providers.saveItem item
+        providersCtx.Refresh()
+        return result
+    }
+
     let props = {|
             Structure = structure
             useEditor = fun provider -> useProviderEditor provider
             ItemNew = Utils.newProvider
-            ItemSave = Api.Providers.saveItem
+            ItemSave = saveAndRefresh
             FetchBefore = fetchBefore
             FetchAfter = fetchAfter
         |}

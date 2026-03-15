@@ -10,7 +10,7 @@ let useProductEditor (product: Product) =
     let energyKind, setEnergyKind = React.useState product.EnergyKind
     let priceType, setPriceType = React.useState product.PriceType
     let provider_id, setProvider_id = React.useState product.Provider_ID
-    let providers = useProviders()
+    let providers = useProviders().Data
     let name, setName = React.useState product.Name
 
     React.useEffect((fun () ->
@@ -40,7 +40,14 @@ let useProductEditor (product: Product) =
 [<ReactComponent>]
 let PgProducts() =
 
-    let providersMap = useProviders() |> Map.ofList
+    let providersMap = useProviders().Data |> Map.ofList
+    let productsCtx = useProducts()
+
+    let saveAndRefresh item = async {
+        let! result = Api.Products.saveItem item
+        productsCtx.Refresh()
+        return result
+    }
 
     let fetchBefore (price: Product option) count =
         let name, id =
@@ -74,7 +81,7 @@ let PgProducts() =
             Structure = structure
             useEditor = fun price -> useProductEditor price
             ItemNew = Utils.newProduct
-            ItemSave = Api.Products.saveItem
+            ItemSave = saveAndRefresh
             FetchBefore = fetchBefore
             FetchAfter = fetchAfter
         |}

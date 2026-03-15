@@ -48,6 +48,7 @@ let App () =
         renderMenuNavItem "Products" (fun _ -> setCurrentPage Page.Products)
         renderMenuNavItem "Product prices" (fun _ -> setCurrentPage Page.ProductPrices)
         renderMenuNavItem "Places" (fun _ -> setCurrentPage Page.Places)
+        renderMenuNavItem "PlaceProducts" (fun _ -> setCurrentPage Page.PlaceProducts)
         renderMenuNavItem "Providers" (fun _ -> setCurrentPage Page.Providers)
         renderMenuNavItem "PriceSeries" (fun _ -> setCurrentPage Page.PriceSeries)
         renderMenuNavItem "Test" (fun _ -> setCurrentPage Page.Test)]

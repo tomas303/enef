@@ -9,9 +9,9 @@ open Hooks
 let usePlaceProductEditor (ep: PlaceProduct) =
     let fromdate, setFromdate = React.useState(Utils.unixTimeToLocalDateTime ep.FromDate)
     let product_id, setPrice_id = React.useState ep.Product_ID
-    let products = useProducts()
+    let products = useProducts().Data
     let place_id, setPlace_id = React.useState ep.Place_ID
-    let places = usePlaces()
+    let places = usePlaces().Data
 
     React.useEffect((fun () ->
         let energyPriceFromDate = Utils.unixTimeToLocalDateTime ep.FromDate
@@ -38,8 +38,8 @@ let usePlaceProductEditor (ep: PlaceProduct) =
 [<ReactComponent>]
 let PgPlaceProducts() =
 
-    let placesMap = usePlaces() |> Map.ofList
-    let productsMap = useProducts() |> Map.ofList
+    let placesMap = usePlaces().Data |> Map.ofList
+    let productsMap = useProducts().Data |> Map.ofList
 
     let fetchBefore placeProduct count =
         let fromDate, id =
