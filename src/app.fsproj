@@ -20,6 +20,7 @@
     <Compile Include="PgProductPrices.fs" />
     <Compile Include="PgPlaceProducts.fs" />
     <Compile Include="pgPriceSeries.fs" />
+    <Compile Include="PgSettlements.fs" />
     <Compile Include="PgTest.fs" />
     <Compile Include="App.fs" />
     <Compile Include="Main.fs" />

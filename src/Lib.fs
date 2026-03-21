@@ -71,6 +71,14 @@ type PlaceProduct = {
     Product_ID: string
 }
 
+type Settlement = {
+    ID: string
+    Date: int64
+    EnergyKind: EnergyKind
+    PriceType: PriceType
+    Amount: int
+}
+
 type GasPriceSerie = {
     Place_ID: string
     SliceStart: int64
@@ -277,6 +285,14 @@ module Utils =
         Place_ID = ""
     }
 
+    let newSettlement () = {
+        ID = newID ()
+        Date = localDateTimeToUnixTime System.DateTime.Now
+        EnergyKind = EnergyKind.ElektricityNT
+        PriceType = PriceType.ComodityPerVolume
+        Amount = 0
+    }
+
 module Encode =
 
     let energy (ene : Energy) =
@@ -325,6 +341,15 @@ module Encode =
             "FromDate", Encode.int64 pp.FromDate
             "Place_ID", Encode.string pp.Place_ID
             "Product_ID", Encode.string pp.Product_ID
+        ]
+
+    let settlement (s : Settlement) =
+        Encode.object [
+            "ID", Encode.string s.ID
+            "Date", Encode.int64 s.Date
+            "EnergyKind", Encode.int (Constants.EnergyKindToInt.[s.EnergyKind])
+            "PriceType", Encode.int (Constants.PriceTypeToInt.[s.PriceType])
+            "Amount", Encode.int s.Amount
         ]
 
 module Decode =
@@ -413,6 +438,16 @@ module Decode =
                 UnregulatedPrice = fields.Required.At [ "UnregulatedPrice" ] Decode.float
                 RegulatedPrice = fields.Required.At [ "RegulatedPrice" ] Decode.float
                 TotalPrice = fields.Required.At [ "TotalPrice" ] Decode.float
+            }
+        )
+
+    let settlement : Decoder<Settlement> =
+        Decode.object (fun fields -> {
+                ID = fields.Required.At [ "ID" ] Decode.string
+                Date = fields.Required.At [ "Date" ] Decode.int64
+                EnergyKind = fields.Required.At [ "EnergyKind" ] energyKind
+                PriceType = fields.Required.At [ "PriceType" ] priceType
+                Amount = fields.Required.At [ "Amount" ] Decode.int
             }
         )
 
@@ -571,4 +606,23 @@ module Api =
     module PriceSeries =
         let loadGas  (fromdate : int64) (todate: int64) =
             get $"{url}/gas-prices?fromdate={fromdate}&todate={todate}" (Decode.list Decode.gaspriceserie)
+
+    module Settlements =
+        let ns = "settlements"
+
+        let saveItem (item : Settlement) = async {
+            let json = Encode.settlement item
+            let body = Encode.toString 2 json
+            let! (status, responseText) = Http.post $"{url}/{ns}" body
+            match status with
+            | 200 -> return Ok item
+            | 201 -> return Ok item
+            | _ -> return makeError status responseText
+        }
+
+        let loadPagePrev (date: int64) (id: string) (limit: int) =
+            get $"{url}/{ns}/page/prev?date={date}&id={id}&limit={limit}" (Decode.list Decode.settlement)
+
+        let loadPageNext (date: int64) (id: string) (limit: int) =
+            get $"{url}/{ns}/page/next?date={date}&id={id}&limit={limit}" (Decode.list Decode.settlement)
 
