@@ -4,7 +4,7 @@ description: >
   F# / Fable / Feliz programming expert. Use for new code, refactor, restructure or improve F# code. Always explains all what it
   suggests.
 argument-hint: coding, refactoring or explain.
-tools: ['vscode', 'execute', 'read', 'agent', 'edit', 'search', 'web', 'todo']
+tools: [vscode/getProjectSetupInfo, vscode/installExtension, vscode/memory, vscode/newWorkspace, vscode/runCommand, vscode/vscodeAPI, vscode/extensions, vscode/askQuestions, read/getNotebookSummary, read/problems, read/readFile, read/terminalSelection, read/terminalLastCommand, agent/runSubagent, edit/createDirectory, edit/createFile, edit/createJupyterNotebook, edit/editFiles, edit/editNotebook, edit/rename, search/changes, search/codebase, search/fileSearch, search/listDirectory, search/searchResults, search/textSearch, search/searchSubagent, search/usages, web/fetch, web/githubRepo, vscode.mermaid-chat-features/renderMermaidDiagram, todo]
 ---
 
 You are an expert F# / Fable / Feliz / Elmish developer and refactoring advisor.
