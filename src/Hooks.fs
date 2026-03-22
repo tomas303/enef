@@ -39,9 +39,17 @@ let AppDataProvider (children: ReactElement list) =
 
     let fetchProducts () =
         async {
+            let! providersResult = Api.Providers.loadAll()
+            let providerMap =
+                match providersResult with
+                | Ok content -> content |> List.map (fun x -> x.ID, x.Name) |> Map.ofList
+                | Error _ -> Map.empty
             let! result = Api.Products.loadAll()
             match result with
-            | Ok content -> setProducts (content |> List.map (fun x -> x.ID, x.Name))
+            | Ok content ->
+                setProducts (content |> List.map (fun x ->
+                    let providerName = providerMap |> Map.tryFind x.Provider_ID |> Option.defaultValue ""
+                    x.ID, $"{providerName} {x.Name} ({Constants.EnergyKindToText[x.EnergyKind]} {Constants.PriceTypeToText[x.PriceType]})"))
             | Error _ -> ()
         } |> Async.StartImmediate
 

@@ -66,13 +66,13 @@ let PgProducts() =
 
     let structure = {
             Headers = [
-                { Label = "name" ; FlexBasis = 50; DataGetter = fun (item: Product) -> item.Name }
-                { Label = "provider_id" ; FlexBasis = 30; DataGetter = fun (item: Product) -> 
+                { Label = "name" ; FlexBasis = 30; DataGetter = fun (item: Product) -> item.Name }
+                { Label = "provider_id" ; FlexBasis = 20; DataGetter = fun (item: Product) -> 
                     match Map.tryFind item.Provider_ID providersMap with
                     | Some name -> name
                     | None -> "Unknown Provider" }
-                { Label = "priceType" ; FlexBasis = 30; DataGetter = fun (item: Product) -> Constants.PriceTypeToText[item.PriceType] }
-                { Label = "kind" ; FlexBasis = 30; DataGetter = fun (item: Product) -> Constants.EnergyKindToText[item.EnergyKind] }
+                { Label = "priceType" ; FlexBasis = 40; DataGetter = fun (item: Product) -> Constants.PriceTypeToText[item.PriceType] }
+                { Label = "kind" ; FlexBasis = 10; DataGetter = fun (item: Product) -> Constants.EnergyKindToText[item.EnergyKind] }
             ]
             IdGetter = fun (item: Product) -> item.ID
         }

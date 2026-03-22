@@ -55,8 +55,8 @@ let PgProductPrices() =
 
     let structure: WgListStructure<ProductPrice> = {
             Headers = [
-                { Label = "fromdate" ; FlexBasis = 25; DataGetter = fun item -> (Utils.unixTimeToLocalDateTime item.FromDate).ToString("dd.MM.yyyy") }
-                { Label = "product_id" ; FlexBasis = 30; DataGetter = fun item ->
+                { Label = "fromdate" ; FlexBasis = 15; DataGetter = fun item -> (Utils.unixTimeToLocalDateTime item.FromDate).ToString("dd.MM.yyyy") }
+                { Label = "product_id" ; FlexBasis = 50; DataGetter = fun item ->
                     match Map.tryFind item.Product_ID productsMap with
                     | Some name -> name
                     | None -> "Unknown product" }

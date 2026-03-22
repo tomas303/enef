@@ -395,13 +395,13 @@ let WgAgenda (props:{|
                     setLastError (Some exn.Message)
                 | Deferred.Resolved content ->
                     match content with
-                        | Ok energy ->
+                        | Ok item ->
                             match state with
                             | State.Adding ->
-                                let newBuffer = GridBuffer.recordInsert buffer energy
+                                let newBuffer = GridBuffer.recordInsert buffer item
                                 setBuffer newBuffer
                             | State.Editing ->
-                                let newBuffer = GridBuffer.recordUpdate buffer energy
+                                let newBuffer = GridBuffer.recordUpdate buffer item
                                 setBuffer newBuffer
                             | _ -> ()
                         | Error error -> 
