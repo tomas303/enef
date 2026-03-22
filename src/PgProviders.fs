@@ -7,7 +7,7 @@ open WgList
 open Hooks
 
 let useProviderEditor (provider: Provider) =
-    let (name, setName) = React.useState(provider.Name)
+    let name, setName = React.useState provider.Name
 
     let fields = [
         StrField { Name = "name" ; Value = name; HandleChange = setName }

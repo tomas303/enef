@@ -334,6 +334,17 @@ let WgAgendaEdit (onSave: unit -> unit) (onClose: unit -> unit) (title: string) 
         )
 
 [<ReactComponent>]
+let private WgEditorPanel (props: {|
+        key: string
+        item: 'T
+        useEditor: 'T -> list<Field> * (unit -> 'T)
+        onSave: 'T -> unit
+        onCancel: unit -> unit
+        title: string |}) =
+    let fields, getUpdatedItem = props.useEditor props.item
+    WgAgendaEdit (fun () -> props.onSave(getUpdatedItem())) props.onCancel props.title (WgEditFields fields)
+
+[<ReactComponent>]
 let WgAgenda (props:{|
         Structure: WgListStructure<'T>
         useEditor:'T -> list<Field> * ( unit ->  'T)
@@ -354,8 +365,6 @@ let WgAgenda (props:{|
         | State.Adding -> defaultItem
         | State.Editing when GridBuffer.cursorValid buffer -> buffer.Data[buffer.Cursor]
         | _ -> defaultItem
-    
-    let fields, getUpdatedItem = props.useEditor currentItem
 
     let handleMove =
         React.useDeferredCallback(
@@ -431,26 +440,23 @@ let WgAgenda (props:{|
     let editArea =
         match state with
         | State.Adding ->
-            let onSave () = handleSave(getUpdatedItem())
-            let onCancel () = setState(State.Browsing)
-            WgAgendaEdit 
-                onSave
-                onCancel 
-                "Add New Item"
-                (WgEditFields fields)
-                
+            WgEditorPanel {|
+                key = "add"
+                item = currentItem
+                useEditor = props.useEditor
+                onSave = handleSave
+                onCancel = fun () -> setState State.Browsing
+                title = "Add New Item" |}
         | State.Editing when GridBuffer.cursorValid buffer ->
-            let onSave () = handleSave(getUpdatedItem())
-            let onCancel () = setState(State.Browsing)
-            WgAgendaEdit 
-                onSave
-                onCancel 
-                "Edit Item"
-                (WgEditFields fields)
-                
+            WgEditorPanel {|
+                key = props.Structure.IdGetter currentItem
+                item = currentItem
+                useEditor = props.useEditor
+                onSave = handleSave
+                onCancel = fun () -> setState State.Browsing
+                title = "Edit Item" |}
         | State.Editing -> 
             Html.text $"invalid cursor: {buffer.Cursor}"
-            
         | _ -> 
             Html.none
 
