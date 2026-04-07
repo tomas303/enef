@@ -111,7 +111,7 @@ module GridBuffer =
         Lasterror: Option<string>
     }
 
-    let applyDelta (config: Config<'T>) (state: State<'T>) delta =
+    let private applyDelta (config: Config<'T>) (state: State<'T>) delta =
         let newCursor = state.Cursor + delta
         if newCursor < state.Top || newCursor > state.Bottom then
             let newTop = state.Top + delta
@@ -122,7 +122,7 @@ module GridBuffer =
             }
         else { state with Cursor = newCursor }
 
-    let readBefore (config: Config<'T>) (state: State<'T>) = async {
+    let private readBefore (config: Config<'T>) (state: State<'T>) = async {
         let delta = abs(state.Top)
         let! fetchData =
             if state.Data.Length > 0
@@ -146,7 +146,7 @@ module GridBuffer =
             return { state with Lasterror = Some(error) }
     }
 
-    let readAfter (config: Config<'T>) (state: State<'T>) = async {
+    let private readAfter (config: Config<'T>) (state: State<'T>) = async {
         let delta = max config.ViewSize (abs(state.Bottom - state.Data.Length))
         let! fetchData =
             if state.Data.Length > 0
@@ -169,7 +169,7 @@ module GridBuffer =
             return { state with Lasterror = Some(error) }
     }
 
-    let correct (config: Config<'T>) (state: State<'T>) =
+    let private correct (config: Config<'T>) (state: State<'T>) =
         let newTop =
             if state.Top < 0 then
                 0
@@ -191,6 +191,24 @@ module GridBuffer =
             Cursor = newCursor
             Top = newTop
             Bottom = newBottom }
+
+    let private refetchAroundItem (config: Config<'T>) (item: 'T) = async {
+        let! beforeResult = config.FetchBefore (Some item) config.ViewSize
+        let! afterResult = config.FetchAfter (Some item) config.ViewSize
+        match beforeResult, afterResult with
+        | Ok before, Ok after ->
+            let newData = before @ [item] @ after
+            let newData =
+                if newData.Length > config.DataSize
+                then List.take config.DataSize newData
+                else newData
+            let cursor = before.Length
+            let top = max 0 (cursor - config.ViewSize)
+            let bottom = min (newData.Length - 1) (top + config.ViewSize - 1)
+            return Ok { Top = top; Bottom = bottom; Cursor = cursor; Data = newData; Lasterror = None }
+        | Error e, _ | _, Error e ->
+            return Error e
+    }
 
     let move (config: Config<'T>) (state: State<'T>) delta = async {
         let newState = applyDelta config state delta
@@ -214,24 +232,6 @@ module GridBuffer =
 
     let cursorValid (state: State<'T>) =
         state.Cursor >= 0 && state.Cursor <= state.Data.Length - 1
-
-    let private refetchAroundItem (config: Config<'T>) (item: 'T) = async {
-        let! beforeResult = config.FetchBefore (Some item) config.ViewSize
-        let! afterResult = config.FetchAfter (Some item) config.ViewSize
-        match beforeResult, afterResult with
-        | Ok before, Ok after ->
-            let newData = before @ [item] @ after
-            let newData =
-                if newData.Length > config.DataSize
-                then List.take config.DataSize newData
-                else newData
-            let cursor = before.Length
-            let top = max 0 (cursor - config.ViewSize)
-            let bottom = min (newData.Length - 1) (top + config.ViewSize - 1)
-            return Ok { Top = top; Bottom = bottom; Cursor = cursor; Data = newData; Lasterror = None }
-        | Error e, _ | _, Error e ->
-            return Error e
-    }
 
     let recordUpdate (config: Config<'T>) (item: 'T) =
         refetchAroundItem config item
