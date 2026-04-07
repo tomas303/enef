@@ -215,13 +215,29 @@ module GridBuffer =
     let cursorValid (state: State<'T>) =
         state.Cursor >= 0 && state.Cursor <= state.Data.Length - 1
 
-    let recordUpdate (state: State<'T>) item =
-        let newData = state.Data[0 .. state.Cursor - 1] @ [item] @ state.Data[state.Cursor + 1 .. state.Data.Length - 1]
-        { state with Data = newData }
+    let private refetchAroundItem (config: Config<'T>) (item: 'T) = async {
+        let! beforeResult = config.FetchBefore (Some item) config.ViewSize
+        let! afterResult = config.FetchAfter (Some item) config.ViewSize
+        match beforeResult, afterResult with
+        | Ok before, Ok after ->
+            let newData = before @ [item] @ after
+            let newData =
+                if newData.Length > config.DataSize
+                then List.take config.DataSize newData
+                else newData
+            let cursor = before.Length
+            let top = max 0 (cursor - config.ViewSize)
+            let bottom = min (newData.Length - 1) (top + config.ViewSize - 1)
+            return Ok { Top = top; Bottom = bottom; Cursor = cursor; Data = newData; Lasterror = None }
+        | Error e, _ | _, Error e ->
+            return Error e
+    }
 
-    let recordInsert (state: State<'T>) item =
-        let newData = state.Data[0 .. state.Cursor - 1] @ [item] @ state.Data[state.Cursor .. state.Data.Length - 1]
-        { state with Data = newData }
+    let recordUpdate (config: Config<'T>) (item: 'T) =
+        refetchAroundItem config item
+
+    let recordInsert (config: Config<'T>) (item: 'T) =
+        refetchAroundItem config item
 
     let createConfig viewSize dataSize fetchBefore fetchAfter : Config<'T> = {
         ViewSize = viewSize
@@ -395,28 +411,32 @@ let WgAgenda (props:{|
         )
 
     let handleSave =
-        React.useDeferredCallback(props.ItemSave, 
+        React.useDeferredCallback(
+            (fun (item, wasAdding) -> async {
+                let! saveResult = props.ItemSave item
+                match saveResult with
+                | Ok savedItem ->
+                    return!
+                        if wasAdding
+                        then GridBuffer.recordInsert bufferConfig savedItem
+                        else GridBuffer.recordUpdate bufferConfig savedItem
+                | Error e -> return Error e
+            }),
             (fun x ->
                 setLastError None
                 match x with
                 | Deferred.HasNotStartedYet -> setState State.Browsing
                 | Deferred.InProgress -> setState State.Saving
-                | Deferred.Failed exn -> 
+                | Deferred.Failed exn ->
                     setState State.Browsing
                     setLastError (Some exn.Message)
-                | Deferred.Resolved content ->
-                    match content with
-                        | Ok item ->
-                            match state with
-                            | State.Adding ->
-                                let newBuffer = GridBuffer.recordInsert buffer item
-                                setBuffer newBuffer
-                            | State.Editing ->
-                                let newBuffer = GridBuffer.recordUpdate buffer item
-                                setBuffer newBuffer
-                            | _ -> ()
-                        | Error error -> 
-                            setLastError (Some error)
+                | Deferred.Resolved result ->
+                    match result with
+                    | Ok newBuffer ->
+                        setBuffer newBuffer
+                        setLastError newBuffer.Lasterror
+                    | Error error ->
+                        setLastError (Some error)
                     setState State.Browsing
             )
         )
@@ -455,7 +475,7 @@ let WgAgenda (props:{|
                 key = "add"
                 item = currentItem
                 useEditor = props.useEditor
-                onSave = handleSave
+                onSave = fun item -> handleSave (item, true)
                 onCancel = fun () -> setState State.Browsing
                 title = "Add New Item" |}
         | State.Editing when GridBuffer.cursorValid buffer ->
@@ -463,7 +483,7 @@ let WgAgenda (props:{|
                 key = props.Structure.IdGetter currentItem
                 item = currentItem
                 useEditor = props.useEditor
-                onSave = handleSave
+                onSave = fun item -> handleSave (item, false)
                 onCancel = fun () -> setState State.Browsing
                 title = "Edit Item" |}
         | State.Editing -> 
