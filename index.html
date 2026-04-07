@@ -16,6 +16,13 @@
         --fg-border-color: hsl(114, 91%, 39%);
     }
 
+    html, body {
+      height: 100dvh;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     
     
     
@@ -26,7 +33,9 @@
         "content";
       grid-template-columns: 1fr;
       grid-template-rows: auto 1fr;
-      /* min-height: 100vh; */
+      height: 100dvh;
+      overflow: hidden;
+      box-sizing: border-box;
       gap: 10px; /* Adds space between grid cells */
       max-width: 1200px; /* Set a maximum width */
       margin: 0 auto;     /* Center the grid horizontally */
@@ -43,6 +52,8 @@
       grid-area: content;
       background-color: #fff;
       padding: 20px;
+      min-height: 0;       /* required: grid children don't shrink by default */
+      overflow: hidden;
     }
 
 

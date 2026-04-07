@@ -8,6 +8,8 @@ open WgList
 open WgEdit
 open CustomElements
 open Lib
+open Fable.Core
+open Fable.Core.JsInterop
 
 module FocusManager =
     
@@ -370,6 +372,9 @@ let private WgEditorPanel (props: {|
     let fields, getUpdatedItem = props.useEditor props.item
     WgAgendaEdit (fun () -> props.onSave(getUpdatedItem())) props.onCancel props.title (WgEditFields fields)
 
+[<Emit("new ResizeObserver($0)")>]
+let private createResizeObserver (callback: obj[] -> unit) : obj = jsNative
+
 [<ReactComponent>]
 let WgAgenda (props:{|
         Structure: WgListStructure<'T>
@@ -381,7 +386,12 @@ let WgAgenda (props:{|
     |}) =
 
     // ===== HOOKS (Root Level) =====
-    let bufferConfig = React.useMemo((fun () -> GridBuffer.createConfig 15 100 props.FetchBefore props.FetchAfter), [||])
+    let rowHeightPx = 32.0
+    let isInitialized = React.useRef(false)
+    let rowHeightCalibrated = React.useRef(false)
+    let viewSize, setViewSize = React.useState(0)  // 0 = unknown until ResizeObserver fires
+    let listContainerRef = React.useRef<Browser.Types.Element option>(None)
+    let bufferConfig = React.useMemo((fun () -> GridBuffer.createConfig viewSize 100 props.FetchBefore props.FetchAfter), [| box viewSize |])
     let buffer, setBuffer = React.useState(GridBuffer.createState())
     let state, setState = React.useState State.Browsing
     let lastError, setLastError = React.useState(None)
@@ -441,10 +451,53 @@ let WgAgenda (props:{|
             )
         )
 
-    // Initialize data on mount
+    // Observe list container height and recalculate viewSize
     React.useEffect((fun () ->
-        handleMove(1)
-    ), [||])  // Empty dependency array ensures this runs only once
+        match listContainerRef.current with
+        | None -> { new System.IDisposable with member _.Dispose() = () }
+        | Some el ->
+            let observer = createResizeObserver (fun entries ->
+                entries |> Array.iter (fun entry ->
+                    if entry?target = (el :> obj) then
+                        let height: float = entry?contentRect?height
+                        let firstRow = el.querySelector(".fg-row")
+                        let rowH =
+                            if isNull firstRow then rowHeightPx
+                            else
+                                let rect = firstRow.getBoundingClientRect()
+                                if rect.height > 0.0 then rect.height else rowHeightPx
+                        let rows = max 5 (int (height / rowH))
+                        setViewSize rows
+                )
+            )
+            observer?observe(el)
+            { new System.IDisposable with member _.Dispose() = observer?disconnect() }
+    ), [||])
+
+    // Init on first known viewSize; re-sync when viewSize changes after data is loaded
+    React.useEffect((fun () ->
+        if viewSize > 0 then
+            if GridBuffer.cursorValid buffer then handleMove(0)
+            elif not isInitialized.current then
+                isInitialized.current <- true
+                handleMove(1)
+    ), [| box viewSize |])
+
+    // One-time recalibration: after first data load measure real row height and correct viewSize
+    React.useEffect((fun () ->
+        if GridBuffer.cursorValid buffer && not rowHeightCalibrated.current then
+            rowHeightCalibrated.current <- true
+            match listContainerRef.current with
+            | None -> ()
+            | Some el ->
+                let firstRow = el.querySelector(".fg-row")
+                if not (isNull firstRow) then
+                    let rowRect = firstRow.getBoundingClientRect()
+                    if rowRect.height > 0.0 then
+                        let containerHeight = el.getBoundingClientRect().height
+                        let calibrated = max 5 (int (containerHeight / rowRect.height))
+                        if calibrated <> viewSize then setViewSize calibrated
+    ), [| box buffer |])
 
     let actions: AgendaAction list = [
         { Key = {| Shortcut = "PageUp"; Alt = false |}; Label = "PgUp"; Handler = (fun () -> if state = State.Browsing then handleMove(bufferConfig.ViewSize * -1)); Enabled = state = State.Browsing }
@@ -510,6 +563,8 @@ let WgAgenda (props:{|
     let listContent = 
         Html.div [
             prop.id "edit-portal"
+            prop.ref (fun el -> listContainerRef.current <- Some el)
+            prop.style [ style.height (length.percent 100); style.overflow.hidden ]
             prop.children [
                 WgList listProps
             ]                
@@ -538,6 +593,7 @@ let WgAgenda (props:{|
 
     let contentArea = 
         Html.div [
+            prop.style [ style.flexGrow 1; style.minHeight 0; style.overflow.hidden ]
             prop.children [
                 listContent
                 editArea
@@ -546,7 +602,10 @@ let WgAgenda (props:{|
 
     // ===== RENDER =====
     Html.div [
-        errorDisplay
-        contentArea
-        buttonBar
+        prop.style [ style.height (length.percent 100); style.display.flex; style.flexDirection.column ]
+        prop.children [
+            errorDisplay
+            contentArea
+            buttonBar
+        ]
     ]
