@@ -96,137 +96,147 @@ module FocusManager =
 
 module GridBuffer =
 
-    type Data<'T> = {
+    type Config<'T> = {
+        ViewSize: int
+        DataSize: int
+        FetchBefore: Option<'T> -> int -> Async<Result<list<'T>, string>>
+        FetchAfter: Option<'T> -> int -> Async<Result<list<'T>, string>>
+    }
+
+    type State<'T> = {
         Top: int
         Bottom: int
         Cursor: int
-        ViewSize: int
-        DataSize: int
         Data: List<'T>
         Lasterror: Option<string>
-    }   
+    }
 
-    let applyDelta data delta = 
-        let newCursor = data.Cursor + delta
-        if newCursor < data.Top || newCursor > data.Bottom then
-            let newTop = data.Top + delta
-            {data with 
+    let applyDelta (config: Config<'T>) (state: State<'T>) delta =
+        let newCursor = state.Cursor + delta
+        if newCursor < state.Top || newCursor > state.Bottom then
+            let newTop = state.Top + delta
+            { state with
                 Cursor = newCursor
                 Top = newTop
-                Bottom = newTop + data.ViewSize - 1
+                Bottom = newTop + config.ViewSize - 1
             }
-        else { data with Cursor = newCursor }
+        else { state with Cursor = newCursor }
 
-    let readBefore data fetchBefore = async {
-        let delta = abs(data.Top)
+    let readBefore (config: Config<'T>) (state: State<'T>) = async {
+        let delta = abs(state.Top)
         let! fetchData =
-            if data.Data.Length > 0 
-            then fetchBefore (Some data.Data[0]) delta
-            else fetchBefore None delta
+            if state.Data.Length > 0
+            then config.FetchBefore (Some state.Data[0]) delta
+            else config.FetchBefore None delta
         match fetchData with
         | Ok content ->
-            let newData = content @ data.Data
-            let newData = 
-                if newData.Length > data.DataSize then
-                    List.take data.DataSize newData
+            let newData = content @ state.Data
+            let newData =
+                if newData.Length > config.DataSize then
+                    List.take config.DataSize newData
                 else
                     newData
-            return 
-                { data with
-                    Cursor = data.Cursor + content.Length
-                    Top = data.Top + content.Length
-                    Bottom = data.Bottom + content.Length
+            return
+                { state with
+                    Cursor = state.Cursor + content.Length
+                    Top = state.Top + content.Length
+                    Bottom = state.Bottom + content.Length
                     Data = newData }
         | Error error ->
-            return { data with Lasterror = Some(error) }
-        }
+            return { state with Lasterror = Some(error) }
+    }
 
-    let readAfter data fetchAfter = async {
-        let delta = max data.ViewSize (abs(data.Bottom - data.Data.Length))
-        let! fetchData = 
-            if data.Data.Length > 0 
-            then fetchAfter (Some data.Data[data.Data.Length - 1]) delta
-            else fetchAfter None delta
+    let readAfter (config: Config<'T>) (state: State<'T>) = async {
+        let delta = max config.ViewSize (abs(state.Bottom - state.Data.Length))
+        let! fetchData =
+            if state.Data.Length > 0
+            then config.FetchAfter (Some state.Data[state.Data.Length - 1]) delta
+            else config.FetchAfter None delta
         match fetchData with
         | Ok content ->
-            let newData = data.Data @ content
+            let newData = state.Data @ content
             let removeCnt =
-                if newData.Length > data.DataSize
-                then newData.Length - data.DataSize
+                if newData.Length > config.DataSize
+                then newData.Length - config.DataSize
                 else 0
-            return 
-                { data with
-                    Cursor = data.Cursor - removeCnt
-                    Top = data.Top - removeCnt
-                    Bottom = data.Bottom - removeCnt
+            return
+                { state with
+                    Cursor = state.Cursor - removeCnt
+                    Top = state.Top - removeCnt
+                    Bottom = state.Bottom - removeCnt
                     Data = List.skip removeCnt newData }
         | Error error ->
-            return { data with Lasterror = Some(error) }
-        }
+            return { state with Lasterror = Some(error) }
+    }
 
-    let correct data =
+    let correct (config: Config<'T>) (state: State<'T>) =
         let newTop =
-            if data.Top < 0 then
+            if state.Top < 0 then
                 0
-            else if data.Top > data.Data.Length - 1 then
-                data.Data.Length - 1
+            else if state.Top > state.Data.Length - 1 then
+                state.Data.Length - 1
             else
-                data.Top
-        let newBottom = 
-            if newTop + data.ViewSize - 1 > data.Data.Length - 1
-            then data.Data.Length - 1
-            else newTop + data.ViewSize - 1
+                state.Top
+        let newBottom =
+            if newTop + config.ViewSize - 1 > state.Data.Length - 1
+            then state.Data.Length - 1
+            else newTop + config.ViewSize - 1
         let newCursor =
-            if data.Cursor < newTop 
+            if state.Cursor < newTop
             then newTop
-            else if data.Cursor > newBottom
+            else if state.Cursor > newBottom
             then newBottom
-            else data.Cursor
-        { data with
+            else state.Cursor
+        { state with
             Cursor = newCursor
             Top = newTop
             Bottom = newBottom }
 
-    let move data delta fetchBefore fetchAfter = async {
-        let newData = applyDelta data delta
-        Dbg.wl $"move: delta={delta} => cursor={newData.Cursor}, top={newData.Top}, bottom={newData.Bottom}"
-        let! newData =
-            if newData.Top < 0 then
+    let move (config: Config<'T>) (state: State<'T>) delta = async {
+        let newState = applyDelta config state delta
+        Dbg.wl $"move: delta={delta} => cursor={newState.Cursor}, top={newState.Top}, bottom={newState.Bottom}"
+        let! newState =
+            if newState.Top < 0 then
                 Dbg.wl "reading before"
-                readBefore newData fetchBefore
-            else if newData.Bottom > newData.Data.Length - 1 then
+                readBefore config newState
+            else if newState.Bottom > newState.Data.Length - 1 then
                 Dbg.wl "reading after"
-                readAfter newData fetchAfter
+                readAfter config newState
             else
                 Dbg.wl "no read needed"
-                async { return newData }
-        let newData = correct newData
-        return newData
+                async { return newState }
+        let newState = correct config newState
+        return newState
     }
 
-    let view data =
-        data.Data[data.Top..data.Bottom]
+    let view (state: State<'T>) =
+        state.Data[state.Top..state.Bottom]
 
-    let cursorValid data =
-        data.Cursor >= 0 && data.Cursor <= data.Data.Length - 1
+    let cursorValid (state: State<'T>) =
+        state.Cursor >= 0 && state.Cursor <= state.Data.Length - 1
 
-    let recordUpdate data item =
-        let newData = data.Data[0 .. data.Cursor - 1] @ [item] @ data.Data[data.Cursor + 1 .. data.Data.Length - 1]
-        { data with Data = newData }
+    let recordUpdate (state: State<'T>) item =
+        let newData = state.Data[0 .. state.Cursor - 1] @ [item] @ state.Data[state.Cursor + 1 .. state.Data.Length - 1]
+        { state with Data = newData }
 
-    let recordInsert data item =
-        let newData = data.Data[0 .. data.Cursor - 1] @ [item] @ data.Data[data.Cursor .. data.Data.Length - 1]
-        { data with Data = newData }
+    let recordInsert (state: State<'T>) item =
+        let newData = state.Data[0 .. state.Cursor - 1] @ [item] @ state.Data[state.Cursor .. state.Data.Length - 1]
+        { state with Data = newData }
 
-    let create viewSize dataSize = {
-            Top = -1
-            Bottom = -1
-            Cursor = -1
-            ViewSize = viewSize
-            DataSize = dataSize
-            Data = []
-            Lasterror = None
-        }   
+    let createConfig viewSize dataSize fetchBefore fetchAfter : Config<'T> = {
+        ViewSize = viewSize
+        DataSize = dataSize
+        FetchBefore = fetchBefore
+        FetchAfter = fetchAfter
+    }
+
+    let createState<'T> () : State<'T> = {
+        Top = -1
+        Bottom = -1
+        Cursor = -1
+        Data = []
+        Lasterror = None
+    }
 
 [<RequireQualifiedAccess>]
 type State =
@@ -355,7 +365,8 @@ let WgAgenda (props:{|
     |}) =
 
     // ===== HOOKS (Root Level) =====
-    let buffer, setBuffer = React.useState(GridBuffer.create 15 100)
+    let bufferConfig = React.useMemo((fun () -> GridBuffer.createConfig 15 100 props.FetchBefore props.FetchAfter), [||])
+    let buffer, setBuffer = React.useState(GridBuffer.createState())
     let state, setState = React.useState State.Browsing
     let lastError, setLastError = React.useState(None)
 
@@ -368,7 +379,7 @@ let WgAgenda (props:{|
 
     let handleMove =
         React.useDeferredCallback(
-            (fun delta -> GridBuffer.move buffer delta props.FetchBefore props.FetchAfter),
+            (fun delta -> GridBuffer.move bufferConfig buffer delta),
             (fun x ->
                 match x with
                 | Deferred.HasNotStartedYet -> ()
@@ -416,8 +427,8 @@ let WgAgenda (props:{|
     ), [||])  // Empty dependency array ensures this runs only once
 
     let actions: AgendaAction list = [
-        { Key = {| Shortcut = "PageUp"; Alt = false |}; Label = "PgUp"; Handler = (fun () -> if state = State.Browsing then handleMove(buffer.ViewSize * -1)); Enabled = state = State.Browsing }
-        { Key = {| Shortcut = "PageDown"; Alt = false |}; Label = "PgDown"; Handler = (fun () -> if state = State.Browsing then handleMove(buffer.ViewSize)); Enabled = state = State.Browsing }
+        { Key = {| Shortcut = "PageUp"; Alt = false |}; Label = "PgUp"; Handler = (fun () -> if state = State.Browsing then handleMove(bufferConfig.ViewSize * -1)); Enabled = state = State.Browsing }
+        { Key = {| Shortcut = "PageDown"; Alt = false |}; Label = "PgDown"; Handler = (fun () -> if state = State.Browsing then handleMove(bufferConfig.ViewSize)); Enabled = state = State.Browsing }
         { Key = {| Shortcut = "ArrowUp"; Alt = false |}; Label = "Up"; Handler = (fun () -> if state = State.Browsing then handleMove(-1)); Enabled = state = State.Browsing }
         { Key = {| Shortcut = "ArrowDown"; Alt = false |}; Label = "Down"; Handler = (fun () -> if state = State.Browsing then handleMove(1)); Enabled = state = State.Browsing }
         { Key = {| Shortcut = "n"; Alt = true |}; Label = "Add"; Handler = (fun () -> if state = State.Browsing then setState State.Adding); Enabled = state = State.Browsing }
@@ -472,7 +483,7 @@ let WgAgenda (props:{|
     let listProps = {|
         Structure = props.Structure
         Rows = listRows
-        RowCount = buffer.ViewSize
+        RowCount = bufferConfig.ViewSize
         Cursor = buffer.Cursor - buffer.Top
     |}
 
