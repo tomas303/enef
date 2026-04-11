@@ -11,19 +11,22 @@ let useSettlementEditor (item: Settlement) =
     let energyKind, setEnergyKind = React.useState item.EnergyKind
     let priceType, setPriceType = React.useState item.PriceType
     let amount, setAmount = React.useState item.Amount
+    let price, setPrice = React.useState item.Price
 
     React.useEffect((fun () ->
         setDate (Utils.unixTimeToLocalDateTime item.Date)
         setEnergyKind item.EnergyKind
         setPriceType item.PriceType
         setAmount item.Amount
+        setPrice item.Price
     ), [| box item |])
 
     let fields = [
         DateTimeField { Name = "date"; Value = date; HandleChange = setDate }
         SelectField { Name = "energyKind"; Value = Constants.EnergyKindToText.[energyKind]; Offer = Constants.EnergyKindSelection; HandleChange = fun x -> setEnergyKind Constants.TextToEnergyKind.[x] }
-        SelectField { Name = "priceType"; Value = Constants.PriceTypeToText.[priceType]; Offer = Constants.PriceTypeSelection; HandleChange = fun x -> setPriceType Constants.TextToPriceType.[x] }
         IntField { Name = "amount"; Value = amount; HandleChange = setAmount }
+        SelectField { Name = "priceType"; Value = Constants.PriceTypeToText.[priceType]; Offer = Constants.PriceTypeSelection; HandleChange = fun x -> setPriceType Constants.TextToPriceType.[x] }
+        IntField { Name = "price"; Value = price; HandleChange = setPrice }
     ]
 
     let getUpdatedSettlement () =
@@ -31,7 +34,8 @@ let useSettlementEditor (item: Settlement) =
             Date = Utils.localDateTimeToUnixTime date
             EnergyKind = energyKind
             PriceType = priceType
-            Amount = amount }
+            Amount = amount
+            Price = price }
 
     fields, getUpdatedSettlement
 
@@ -57,8 +61,9 @@ let PgSettlement() =
         Headers = [
             { Label = "date";       FlexBasis = 25; DataGetter = fun (x: Settlement) -> (Utils.unixTimeToLocalDateTime x.Date).ToString("dd.MM.yyyy") }
             { Label = "energyKind"; FlexBasis = 15; DataGetter = fun (x: Settlement) -> Constants.EnergyKindToText.[x.EnergyKind] }
-            { Label = "priceType";  FlexBasis = 40; DataGetter = fun (x: Settlement) -> Constants.PriceTypeToText.[x.PriceType] }
             { Label = "amount";     FlexBasis = 20; DataGetter = fun (x: Settlement) -> string x.Amount }
+            { Label = "priceType";  FlexBasis = 40; DataGetter = fun (x: Settlement) -> Constants.PriceTypeToText.[x.PriceType] }
+            { Label = "price";     FlexBasis = 20; DataGetter = fun (x: Settlement) -> string x.Price }
         ]
         IdGetter = fun (x: Settlement) -> x.ID
     }

@@ -77,6 +77,7 @@ type Settlement = {
     EnergyKind: EnergyKind
     PriceType: PriceType
     Amount: int
+    Price: int
 }
 
 type GasPriceSerie = {
@@ -291,6 +292,7 @@ module Utils =
         EnergyKind = EnergyKind.ElektricityNT
         PriceType = PriceType.ComodityPerVolume
         Amount = 0
+        Price = 0
     }
 
 module Encode =
@@ -350,6 +352,7 @@ module Encode =
             "EnergyKind", Encode.int (Constants.EnergyKindToInt.[s.EnergyKind])
             "PriceType", Encode.int (Constants.PriceTypeToInt.[s.PriceType])
             "Amount", Encode.int s.Amount
+            "Price", Encode.int s.Price
         ]
 
 module Decode =
@@ -448,6 +451,7 @@ module Decode =
                 EnergyKind = fields.Required.At [ "EnergyKind" ] energyKind
                 PriceType = fields.Required.At [ "PriceType" ] priceType
                 Amount = fields.Required.At [ "Amount" ] Decode.int
+                Price = fields.Required.At [ "Price" ] Decode.int
             }
         )
 
